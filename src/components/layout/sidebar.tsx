@@ -1,0 +1,102 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import {
+  LayoutDashboard, TrendingUp, Users, Award, Settings,
+  Upload, Database, History, Info, FileText, UserCircle
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import type { Profile } from '@/lib/types/database'
+
+const navItems = [
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Projections', href: '/valuation', icon: TrendingUp, children: [
+    { label: 'Capital Table & Valuation', href: '/valuation' },
+    { label: 'Share Turnover Schedule', href: '/repurchase' },
+    { label: 'Repurchase Obligation', href: '/repurchase/share-turnover' },
+  ]},
+  { label: 'Population', href: '/population', icon: Users, children: [
+    { label: 'Population Analysis', href: '/population' },
+    { label: 'Population Projection', href: '/population/projection' },
+    { label: 'Avg Age & Tenure (Active)', href: '/population/average-age-tenure' },
+    { label: 'Avg Age & Tenure (Terminated)', href: '/population/average-balance' },
+  ]},
+  { label: 'ESOP Success Score', href: '/success-score', icon: Award },
+  { label: 'Settings', href: '/settings', icon: Settings },
+  { label: 'Import Data', href: '/import', icon: Upload },
+  { label: 'Data Manage', href: '/manage', icon: Database },
+  { label: 'Backup History', href: '/history', icon: History },
+  { label: 'Reports', href: '/report', icon: FileText },
+  { label: 'About', href: '/about', icon: Info },
+]
+
+export function Sidebar({ profile }: { profile: Profile | null }) {
+  const pathname = usePathname()
+
+  return (
+    <aside className="fixed left-0 top-16 bottom-0 w-64 bg-white border-r border-gray-200 overflow-y-auto hidden lg:block z-40">
+      <nav className="p-4 space-y-1">
+        {navItems.map((item) => {
+          const Icon = item.icon
+          const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+
+          return (
+            <div key={item.href}>
+              <Link
+                href={item.href}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                )}
+              >
+                <Icon className="h-4 w-4 flex-shrink-0" />
+                {item.label}
+              </Link>
+              {item.children && isActive && (
+                <div className="ml-7 mt-1 space-y-1">
+                  {item.children.map((child) => (
+                    <Link
+                      key={child.href}
+                      href={child.href}
+                      className={cn(
+                        'block px-3 py-1.5 rounded text-xs transition-colors',
+                        pathname === child.href
+                          ? 'text-blue-700 font-medium'
+                          : 'text-gray-500 hover:text-gray-700'
+                      )}
+                    >
+                      {child.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
+
+        {profile?.role === 'admin' && (
+          <>
+            <div className="pt-4 pb-2">
+              <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Admin</p>
+            </div>
+            <Link
+              href="/admin"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                pathname?.startsWith('/admin')
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-100'
+              )}
+            >
+              <UserCircle className="h-4 w-4" />
+              User Management
+            </Link>
+          </>
+        )}
+      </nav>
+    </aside>
+  )
+}
