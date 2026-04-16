@@ -1,13 +1,88 @@
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AppBarChart } from '@/components/charts/bar-chart'
+import type { PopulationAnalysis } from '@/lib/types/database'
 
-export default function PopulationPage() {
+const fmtDollar = (v: number) => `$${v.toLocaleString()}`
+
+export default async function PopulationPage() {
+  const supabase = await createClient()
+  const { data: user } = await supabase.auth.getUser()
+  if (!user.user) return null
+
+  const { data: analyses } = await supabase
+    .from('population_analyses')
+    .select('*')
+    .eq('user_id', user.user.id)
+    .order('year')
+
+  const rows = (analyses ?? []) as PopulationAnalysis[]
+
+  if (rows.length === 0) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-gray-900">Population Analysis</h1>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-gray-500 mb-4">No data available. Please upload your Excel data.</p>
+            <Link href="/import" className="text-blue-600 hover:underline font-medium">Go to Import</Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const chartData = rows.map((r) => ({
+    year: r.year,
+    active_participants: r.active_participants,
+  }))
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Population Analysis</h1>
+
       <Card>
-        <CardHeader><CardTitle>Coming Soon</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Population Data</CardTitle></CardHeader>
         <CardContent>
-          <p className="text-gray-500">This module is being built. Check back soon.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-gray-500">
+                  <th className="py-2 pr-4">Year</th>
+                  <th className="py-2 pr-4 text-right">Active Participants</th>
+                  <th className="py-2 pr-4 text-right">Covered Compensation</th>
+                  <th className="py-2 pr-4 text-right">Avg Total Compensation</th>
+                  <th className="py-2 pr-4 text-right">Effective Benefit Rate</th>
+                  <th className="py-2 text-right">Share Turn</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id} className="border-b last:border-0 hover:bg-gray-50">
+                    <td className="py-2 pr-4 font-medium">{r.year}</td>
+                    <td className="py-2 pr-4 text-right">{r.active_participants.toLocaleString()}</td>
+                    <td className="py-2 pr-4 text-right">{fmtDollar(r.covered_compensation)}</td>
+                    <td className="py-2 pr-4 text-right">{fmtDollar(r.avg_total_compensation)}</td>
+                    <td className="py-2 pr-4 text-right">{(r.effective_benefit_rate * 100).toFixed(1)}%</td>
+                    <td className="py-2 text-right">{r.share_turn.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Active Participants Over Time</CardTitle></CardHeader>
+        <CardContent>
+          <AppBarChart
+            data={chartData}
+            xKey="year"
+            bars={[{ key: 'active_participants', color: '#1B2A4A', name: 'Active Participants' }]}
+            height={350}
+          />
         </CardContent>
       </Card>
     </div>

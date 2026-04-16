@@ -1,13 +1,100 @@
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AppLineChart } from '@/components/charts/line-chart'
+import type { ValuationProjection } from '@/lib/types/database'
 
-export default function ValuationPage() {
+const fmt = (v: number) => `$${(v / 1_000_000).toFixed(1)}M`
+const fmtShare = (v: number) => `$${v.toFixed(2)}`
+
+export default async function ValuationPage() {
+  const supabase = await createClient()
+  const { data: user } = await supabase.auth.getUser()
+  if (!user.user) return null
+
+  const { data: projections } = await supabase
+    .from('valuation_projections')
+    .select('*')
+    .eq('user_id', user.user.id)
+    .order('year')
+
+  const rows = (projections ?? []) as ValuationProjection[]
+
+  if (rows.length === 0) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-gray-900">Capital Table &amp; Valuation</h1>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-gray-500 mb-4">No data available. Please upload your Excel data.</p>
+            <Link href="/import" className="text-blue-600 hover:underline font-medium">Go to Import</Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const chartData = rows.map((r) => ({
+    year: r.year,
+    esop_valuation: r.esop_valuation,
+    price_per_share: r.price_per_share,
+  }))
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Capital Table &amp; Valuation</h1>
+
       <Card>
-        <CardHeader><CardTitle>Coming Soon</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Valuation Projections</CardTitle></CardHeader>
         <CardContent>
-          <p className="text-gray-500">This module is being built. Check back soon.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-gray-500">
+                  <th className="py-2 pr-4">Year</th>
+                  <th className="py-2 pr-4 text-right">ESOP Valuation</th>
+                  <th className="py-2 pr-4 text-right">ESOP Shares</th>
+                  <th className="py-2 pr-4 text-right">% ESOP</th>
+                  <th className="py-2 pr-4 text-right">Other Shares</th>
+                  <th className="py-2 pr-4 text-right">% Other</th>
+                  <th className="py-2 pr-4 text-right">Total Shares</th>
+                  <th className="py-2 pr-4 text-right">Price/Share</th>
+                  <th className="py-2 text-right">Price Change</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id} className="border-b last:border-0 hover:bg-gray-50">
+                    <td className="py-2 pr-4 font-medium">{r.year}</td>
+                    <td className="py-2 pr-4 text-right">{fmt(r.esop_valuation)}</td>
+                    <td className="py-2 pr-4 text-right">{r.esop_shares.toLocaleString()}</td>
+                    <td className="py-2 pr-4 text-right">{(r.pct_esop_shares * 100).toFixed(1)}%</td>
+                    <td className="py-2 pr-4 text-right">{r.other_shares.toLocaleString()}</td>
+                    <td className="py-2 pr-4 text-right">{(r.pct_other_shares * 100).toFixed(1)}%</td>
+                    <td className="py-2 pr-4 text-right">{r.total_shares.toLocaleString()}</td>
+                    <td className="py-2 pr-4 text-right">{fmtShare(r.price_per_share)}</td>
+                    <td className="py-2 text-right">{(r.share_price_change * 100).toFixed(1)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Valuation Trend</CardTitle></CardHeader>
+        <CardContent>
+          <AppLineChart
+            data={chartData}
+            xKey="year"
+            lines={[
+              { key: 'esop_valuation', color: '#1B2A4A', name: 'ESOP Valuation' },
+              { key: 'price_per_share', color: '#3B7DD8', name: 'Price Per Share' },
+            ]}
+            formatY={fmt}
+            height={350}
+          />
         </CardContent>
       </Card>
     </div>
