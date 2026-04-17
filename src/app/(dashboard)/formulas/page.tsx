@@ -544,7 +544,7 @@ export default function FormulasPage() {
     <div className="max-w-5xl mx-auto space-y-12 pb-12">
       {/* ---- Header ---- */}
       <div className="text-center space-y-4 py-10 border-b border-gray-200">
-        <h1 className="text-3xl font-bold text-[#1B2A4A]">Formula Engine Documentation</h1>
+        <h1 className="text-3xl font-bold text-menke-navy">Formula Engine Documentation</h1>
         <p className="text-lg text-gray-600">
           Complete reference for all 958 ESOP projection calculations
         </p>
@@ -558,7 +558,7 @@ export default function FormulasPage() {
         {engineStats.map((stat) => (
           <Card key={stat.label}>
             <CardContent className="pt-4 text-center">
-              <p className="text-2xl font-bold text-[#1B2A4A]">{stat.value}</p>
+              <p className="text-2xl font-bold text-menke-navy">{stat.value}</p>
               <p className="text-sm font-medium text-gray-700 mt-1">{stat.label}</p>
               <p className="text-xs text-gray-400 mt-0.5">{stat.detail}</p>
             </CardContent>
@@ -570,7 +570,7 @@ export default function FormulasPage() {
       {/* Section 1: Calculation Pipeline Overview                      */}
       {/* ============================================================ */}
       <section className="space-y-6">
-        <h2 className="text-xl font-bold text-[#1B2A4A] border-b border-gray-200 pb-2">
+        <h2 className="text-xl font-bold text-menke-navy border-b border-gray-200 pb-2">
           1. Calculation Pipeline Overview
         </h2>
         <p className="text-sm text-gray-700 leading-relaxed">
@@ -583,11 +583,11 @@ export default function FormulasPage() {
         <div className="space-y-4">
           {pipelineSteps.map((step) => (
             <div key={step.step} className="flex gap-4 items-start">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#1B2A4A] text-white flex items-center justify-center text-sm font-bold">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-menke-navy text-white flex items-center justify-center text-sm font-bold">
                 {step.step}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-[#1B2A4A]">{step.name}</h3>
+                <h3 className="text-sm font-semibold text-menke-navy">{step.name}</h3>
                 <p className="text-sm text-gray-600 mt-0.5">{step.description}</p>
                 <div className="flex gap-6 mt-2 text-xs text-gray-400">
                   <span>
@@ -607,7 +607,7 @@ export default function FormulasPage() {
       {/* Section 2: Base Participant Calculations                      */}
       {/* ============================================================ */}
       <section className="space-y-6">
-        <h2 className="text-xl font-bold text-[#1B2A4A] border-b border-gray-200 pb-2">
+        <h2 className="text-xl font-bold text-menke-navy border-b border-gray-200 pb-2">
           2. Base Participant Calculations (47 Formulas)
         </h2>
         <p className="text-sm text-gray-700 leading-relaxed">
@@ -619,13 +619,13 @@ export default function FormulasPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
             <thead>
-              <tr className="bg-[#1B2A4A] text-white">
-                <th className="text-left py-3 px-3 font-medium border-b border-[#2a3d66] w-12">ID</th>
-                <th className="text-left py-3 px-3 font-medium border-b border-[#2a3d66] w-40">Name</th>
-                <th className="text-left py-3 px-3 font-medium border-b border-[#2a3d66]">Description</th>
-                <th className="text-left py-3 px-3 font-medium border-b border-[#2a3d66] w-56">Formula</th>
-                <th className="text-left py-3 px-3 font-medium border-b border-[#2a3d66] w-40">Inputs</th>
-                <th className="text-left py-3 px-3 font-medium border-b border-[#2a3d66] w-32">Output Type</th>
+              <tr className="bg-menke-navy text-white">
+                <th className="text-left py-3 px-3 font-medium border-b border-menke-navy-light w-12">ID</th>
+                <th className="text-left py-3 px-3 font-medium border-b border-menke-navy-light w-40">Name</th>
+                <th className="text-left py-3 px-3 font-medium border-b border-menke-navy-light">Description</th>
+                <th className="text-left py-3 px-3 font-medium border-b border-menke-navy-light w-56">Formula</th>
+                <th className="text-left py-3 px-3 font-medium border-b border-menke-navy-light w-40">Inputs</th>
+                <th className="text-left py-3 px-3 font-medium border-b border-menke-navy-light w-32">Output Type</th>
               </tr>
             </thead>
             <tbody>
@@ -634,7 +634,7 @@ export default function FormulasPage() {
                   key={f.id}
                   className={`border-b last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50/50`}
                 >
-                  <td className="py-2 px-3 font-mono text-xs font-bold text-[#1B2A4A]">{f.id}</td>
+                  <td className="py-2 px-3 font-mono text-xs font-bold text-menke-navy">{f.id}</td>
                   <td className="py-2 px-3 font-medium text-gray-800">{f.name}</td>
                   <td className="py-2 px-3 text-gray-600">{f.description}</td>
                   <td className="py-2 px-3 font-mono text-xs text-gray-700 bg-gray-50/50">{f.formula}</td>
@@ -651,7 +651,7 @@ export default function FormulasPage() {
       {/* Section 3: Actuarial Lookups                                  */}
       {/* ============================================================ */}
       <section className="space-y-6">
-        <h2 className="text-xl font-bold text-[#1B2A4A] border-b border-gray-200 pb-2">
+        <h2 className="text-xl font-bold text-menke-navy border-b border-gray-200 pb-2">
           3. Actuarial Lookup Tables
         </h2>
         <p className="text-sm text-gray-700 leading-relaxed">
@@ -664,7 +664,7 @@ export default function FormulasPage() {
           {actuarialTables.map((table) => (
             <Card key={table.name}>
               <CardHeader>
-                <CardTitle className="text-[#1B2A4A]">{table.name}</CardTitle>
+                <CardTitle className="text-menke-navy">{table.name}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
@@ -689,7 +689,7 @@ export default function FormulasPage() {
       {/* Section 4: Repeating Year Template                            */}
       {/* ============================================================ */}
       <section className="space-y-6">
-        <h2 className="text-xl font-bold text-[#1B2A4A] border-b border-gray-200 pb-2">
+        <h2 className="text-xl font-bold text-menke-navy border-b border-gray-200 pb-2">
           4. Repeating Year Template (Years 0-10)
         </h2>
         <p className="text-sm text-gray-700 leading-relaxed">
@@ -703,21 +703,21 @@ export default function FormulasPage() {
           <CardContent className="pt-4 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-blue-50 rounded-lg p-4 text-center">
-                <p className="text-2xl font-bold text-[#1B2A4A]">39</p>
+                <p className="text-2xl font-bold text-menke-navy">39</p>
                 <p className="text-xs text-gray-600 mt-1">Formulas per year</p>
               </div>
               <div className="bg-blue-50 rounded-lg p-4 text-center">
-                <p className="text-2xl font-bold text-[#1B2A4A]">11</p>
+                <p className="text-2xl font-bold text-menke-navy">11</p>
                 <p className="text-xs text-gray-600 mt-1">Projection years</p>
               </div>
               <div className="bg-blue-50 rounded-lg p-4 text-center">
-                <p className="text-2xl font-bold text-[#1B2A4A]">429</p>
+                <p className="text-2xl font-bold text-menke-navy">429</p>
                 <p className="text-xs text-gray-600 mt-1">Per-participant year calcs</p>
               </div>
             </div>
 
             <div className="space-y-3 text-sm text-gray-700">
-              <h3 className="font-semibold text-[#1B2A4A]">How the Year Template Works</h3>
+              <h3 className="font-semibold text-menke-navy">How the Year Template Works</h3>
               <p>
                 Each year template operates on the same logical formulas (CG through DC) but with
                 shifted input references. Year 1 reads from Year 0&apos;s closing values, Year 2 from
@@ -725,31 +725,31 @@ export default function FormulasPage() {
                 projection.
               </p>
 
-              <h3 className="font-semibold text-[#1B2A4A]">Key Year-over-Year Formulas</h3>
+              <h3 className="font-semibold text-menke-navy">Key Year-over-Year Formulas</h3>
               <ul className="space-y-1.5 text-gray-600 ml-4">
                 <li className="flex items-start gap-2">
-                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#1B2A4A] shrink-0" />
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-menke-navy shrink-0" />
                   <span><span className="font-medium">CG (Projected Compensation):</span> Prior year comp x (1 + raise rate) -- compounds annually</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#1B2A4A] shrink-0" />
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-menke-navy shrink-0" />
                   <span><span className="font-medium">CR (End-of-Year Shares):</span> Prior year shares + distributions + new allocations</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#1B2A4A] shrink-0" />
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-menke-navy shrink-0" />
                   <span><span className="font-medium">CX (Total Account Value):</span> All cash flows summed and grown by return rate</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#1B2A4A] shrink-0" />
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-menke-navy shrink-0" />
                   <span><span className="font-medium">CY (Share Value):</span> Shares x projected share price for that year</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#1B2A4A] shrink-0" />
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-menke-navy shrink-0" />
                   <span><span className="font-medium">CZ (Repurchase Obligation):</span> Total vested account value -- the key output</span>
                 </li>
               </ul>
 
-              <h3 className="font-semibold text-[#1B2A4A]">Separation and Mortality Events</h3>
+              <h3 className="font-semibold text-menke-navy">Separation and Mortality Events</h3>
               <p>
                 As years progress, participants may cross separation thresholds (reaching retirement
                 age, triggering turnover events, or mortality). The year template checks eligibility
@@ -765,7 +765,7 @@ export default function FormulasPage() {
       {/* Section 5: Aggregation Formulas                               */}
       {/* ============================================================ */}
       <section className="space-y-6">
-        <h2 className="text-xl font-bold text-[#1B2A4A] border-b border-gray-200 pb-2">
+        <h2 className="text-xl font-bold text-menke-navy border-b border-gray-200 pb-2">
           5. Aggregation Formulas
         </h2>
         <p className="text-sm text-gray-700 leading-relaxed">
@@ -777,10 +777,10 @@ export default function FormulasPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
             <thead>
-              <tr className="bg-[#1B2A4A] text-white">
-                <th className="text-left py-3 px-4 font-medium border-b border-[#2a3d66] w-1/4">Output Table</th>
-                <th className="text-left py-3 px-4 font-medium border-b border-[#2a3d66]">Aggregation Method</th>
-                <th className="text-left py-3 px-4 font-medium border-b border-[#2a3d66] w-1/3">Key Formulas</th>
+              <tr className="bg-menke-navy text-white">
+                <th className="text-left py-3 px-4 font-medium border-b border-menke-navy-light w-1/4">Output Table</th>
+                <th className="text-left py-3 px-4 font-medium border-b border-menke-navy-light">Aggregation Method</th>
+                <th className="text-left py-3 px-4 font-medium border-b border-menke-navy-light w-1/3">Key Formulas</th>
               </tr>
             </thead>
             <tbody>
@@ -789,7 +789,7 @@ export default function FormulasPage() {
                   key={row.table}
                   className={`border-b last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50/50`}
                 >
-                  <td className="py-2.5 px-4 font-medium text-[#1B2A4A]">{row.table}</td>
+                  <td className="py-2.5 px-4 font-medium text-menke-navy">{row.table}</td>
                   <td className="py-2.5 px-4 text-gray-700">{row.method}</td>
                   <td className="py-2.5 px-4 font-mono text-xs text-gray-600">{row.keyFormulas}</td>
                 </tr>
@@ -803,7 +803,7 @@ export default function FormulasPage() {
       {/* Section 6: Vesting Schedule                                   */}
       {/* ============================================================ */}
       <section className="space-y-6">
-        <h2 className="text-xl font-bold text-[#1B2A4A] border-b border-gray-200 pb-2">
+        <h2 className="text-xl font-bold text-menke-navy border-b border-gray-200 pb-2">
           6. Vesting Schedules
         </h2>
         <p className="text-sm text-gray-700 leading-relaxed">
@@ -816,9 +816,9 @@ export default function FormulasPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
             <thead>
-              <tr className="bg-[#1B2A4A] text-white">
+              <tr className="bg-menke-navy text-white">
                 {vestingSchedules.headers.map((h) => (
-                  <th key={h} className="text-center py-3 px-4 font-medium border-b border-[#2a3d66]">
+                  <th key={h} className="text-center py-3 px-4 font-medium border-b border-menke-navy-light">
                     {h}
                   </th>
                 ))}
@@ -835,7 +835,7 @@ export default function FormulasPage() {
                       key={j}
                       className={`py-2.5 px-4 text-center ${
                         j === 0
-                          ? 'font-medium text-[#1B2A4A]'
+                          ? 'font-medium text-menke-navy'
                           : cell === '100%'
                             ? 'text-green-700 font-medium'
                             : cell === '0%'
@@ -855,7 +855,7 @@ export default function FormulasPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
             <CardContent className="pt-4">
-              <h4 className="text-sm font-semibold text-[#1B2A4A]">1-Year Cliff</h4>
+              <h4 className="text-sm font-semibold text-menke-navy">1-Year Cliff</h4>
               <p className="text-xs text-gray-500 mt-1">
                 Participant is 0% vested until completing 1 full year of service, then immediately
                 becomes 100% vested. Simplest schedule, common in smaller plans.
@@ -864,7 +864,7 @@ export default function FormulasPage() {
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <h4 className="text-sm font-semibold text-[#1B2A4A]">3-Year Cliff</h4>
+              <h4 className="text-sm font-semibold text-menke-navy">3-Year Cliff</h4>
               <p className="text-xs text-gray-500 mt-1">
                 Participant is 0% vested until completing 3 full years of service, then immediately
                 becomes 100% vested. Standard ERISA-compliant cliff schedule.
@@ -873,7 +873,7 @@ export default function FormulasPage() {
           </Card>
           <Card>
             <CardContent className="pt-4">
-              <h4 className="text-sm font-semibold text-[#1B2A4A]">6-Year Graded</h4>
+              <h4 className="text-sm font-semibold text-menke-navy">6-Year Graded</h4>
               <p className="text-xs text-gray-500 mt-1">
                 Vesting increases 20% per year starting at year 2, reaching 100% at year 6. Provides
                 a retention incentive over a longer period. Maximum ERISA-allowed graded schedule.
@@ -885,7 +885,7 @@ export default function FormulasPage() {
 
       {/* ---- About the Engine (footer section) ---- */}
       <section className="space-y-4 border-t border-gray-200 pt-8">
-        <h2 className="text-xl font-bold text-[#1B2A4A]">About the Engine</h2>
+        <h2 className="text-xl font-bold text-menke-navy">About the Engine</h2>
         <div className="text-sm text-gray-700 space-y-3 leading-relaxed">
           <p>
             The MenkeReport calculation engine is a TypeScript reimplementation of the Excel-based

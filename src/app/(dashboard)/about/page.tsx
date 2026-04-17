@@ -62,7 +62,7 @@ export default function AboutPage() {
     <div className="max-w-4xl mx-auto space-y-12 pb-12">
       {/* Cover */}
       <div className="text-center space-y-4 py-10 border-b border-gray-200">
-        <h1 className="text-3xl font-bold text-[#1B2A4A]">MenkeReport</h1>
+        <h1 className="text-3xl font-bold text-menke-navy">MenkeReport</h1>
         <p className="text-lg text-gray-600">Product &amp; Market Analysis</p>
         <p className="text-sm text-gray-400 uppercase tracking-widest">
           ESOP Repurchase Obligation Analytics Platform
@@ -83,7 +83,7 @@ export default function AboutPage() {
 
       {/* Section I: Executive Summary */}
       <section className="space-y-6">
-        <h2 className="text-xl font-bold text-[#1B2A4A] border-b border-gray-200 pb-2">
+        <h2 className="text-xl font-bold text-menke-navy border-b border-gray-200 pb-2">
           I. Executive Summary
         </h2>
         <p className="text-sm text-gray-700 leading-relaxed">
@@ -105,7 +105,7 @@ export default function AboutPage() {
           {kpiCards.map((kpi) => (
             <Card key={kpi.label}>
               <CardContent className="pt-4 text-center">
-                <p className="text-2xl font-bold text-[#1B2A4A]">{kpi.value}</p>
+                <p className="text-2xl font-bold text-menke-navy">{kpi.value}</p>
                 <p className="text-sm font-medium text-gray-700 mt-1">{kpi.label}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{kpi.description}</p>
               </CardContent>
@@ -116,7 +116,7 @@ export default function AboutPage() {
 
       {/* Section II: Market Context */}
       <section className="space-y-6">
-        <h2 className="text-xl font-bold text-[#1B2A4A] border-b border-gray-200 pb-2">
+        <h2 className="text-xl font-bold text-menke-navy border-b border-gray-200 pb-2">
           II. Market Context
         </h2>
         <p className="text-sm text-gray-700 leading-relaxed">
@@ -146,7 +146,7 @@ export default function AboutPage() {
 
       {/* Section III: Menke & Associates */}
       <section className="space-y-6">
-        <h2 className="text-xl font-bold text-[#1B2A4A] border-b border-gray-200 pb-2">
+        <h2 className="text-xl font-bold text-menke-navy border-b border-gray-200 pb-2">
           III. Menke &amp; Associates
         </h2>
         <p className="text-sm text-gray-700 leading-relaxed">
@@ -164,7 +164,7 @@ export default function AboutPage() {
                 key={service}
                 className="flex items-start gap-2 text-sm text-gray-700"
               >
-                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#1B2A4A] shrink-0" />
+                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-menke-navy shrink-0" />
                 {service}
               </li>
             ))}
@@ -174,7 +174,7 @@ export default function AboutPage() {
 
       {/* Section IV: Product Overview */}
       <section className="space-y-6">
-        <h2 className="text-xl font-bold text-[#1B2A4A] border-b border-gray-200 pb-2">
+        <h2 className="text-xl font-bold text-menke-navy border-b border-gray-200 pb-2">
           IV. Product Overview
         </h2>
         <p className="text-sm text-gray-700 leading-relaxed">
@@ -195,7 +195,7 @@ export default function AboutPage() {
               <tbody>
                 {dataPipelineRows.map((row) => (
                   <tr key={row.stage} className="border-b last:border-0 hover:bg-gray-50">
-                    <td className="py-2.5 px-4 font-medium text-[#1B2A4A]">{row.stage}</td>
+                    <td className="py-2.5 px-4 font-medium text-menke-navy">{row.stage}</td>
                     <td className="py-2.5 px-4 text-gray-700">{row.description}</td>
                   </tr>
                 ))}
@@ -207,7 +207,7 @@ export default function AboutPage() {
 
       {/* Section V: Technical Architecture */}
       <section className="space-y-6">
-        <h2 className="text-xl font-bold text-[#1B2A4A] border-b border-gray-200 pb-2">
+        <h2 className="text-xl font-bold text-menke-navy border-b border-gray-200 pb-2">
           V. Technical Architecture
         </h2>
         <p className="text-sm text-gray-700 leading-relaxed">
@@ -227,7 +227,7 @@ export default function AboutPage() {
             <tbody>
               {techStackRows.map((row) => (
                 <tr key={row.layer} className="border-b last:border-0 hover:bg-gray-50">
-                  <td className="py-2.5 px-4 font-medium text-[#1B2A4A]">{row.layer}</td>
+                  <td className="py-2.5 px-4 font-medium text-menke-navy">{row.layer}</td>
                   <td className="py-2.5 px-4 text-gray-700">{row.technology}</td>
                   <td className="py-2.5 px-4 text-gray-500">{row.purpose}</td>
                 </tr>

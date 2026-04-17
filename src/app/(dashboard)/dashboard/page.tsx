@@ -90,7 +90,7 @@ export default async function DashboardPage() {
           )}
         </div>
         {hasData && (
-          <Link href="/report" className="inline-flex items-center gap-2 px-4 py-2 bg-[#1B2A4A] text-white text-sm font-medium rounded-lg hover:bg-[#2C3E6B] transition-colors">
+          <Link href="/report" className="inline-flex items-center gap-2 px-4 py-2 bg-menke-navy text-white text-sm font-medium rounded-lg hover:bg-menke-navy-light transition-colors">
             <FileText className="h-4 w-4" />
             Generate Report
           </Link>
@@ -114,7 +114,7 @@ export default async function DashboardPage() {
               Upload your ESOP Excel workbook to see projections, valuations, and analytics across your dashboard.
             </p>
             <div className="flex gap-3">
-              <Link href="/import" className="inline-flex items-center px-4 py-2 bg-[#1B2A4A] text-white rounded-lg hover:bg-[#2C3E6B] transition-colors">
+              <Link href="/import" className="inline-flex items-center px-4 py-2 bg-menke-navy text-white rounded-lg hover:bg-menke-navy-light transition-colors">
                 Import Excel Data
               </Link>
               <Link href="/about" className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">

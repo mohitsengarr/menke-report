@@ -297,7 +297,7 @@ export default function SettingsPage() {
             }}
             className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               activeTab === tab
-                ? 'bg-[#1B2A4A] text-white shadow-sm'
+                ? 'bg-menke-navy text-white shadow-sm'
                 : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
             }`}
           >
@@ -344,7 +344,7 @@ export default function SettingsPage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="rounded-lg bg-[#1B2A4A] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#243558] disabled:opacity-50"
+                className="rounded-lg bg-menke-navy px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-menke-navy-light disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save'}
               </button>

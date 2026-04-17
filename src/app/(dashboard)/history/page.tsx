@@ -111,7 +111,7 @@ export default function HistoryPage() {
         <button
           onClick={handleCreateBackup}
           disabled={actionLoading === 'create'}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#1B2A4A] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#243558] disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-lg bg-menke-navy px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-menke-navy-light disabled:opacity-50"
         >
           <Plus className="h-4 w-4" />
           {actionLoading === 'create' ? 'Creating...' : 'Create Backup'}

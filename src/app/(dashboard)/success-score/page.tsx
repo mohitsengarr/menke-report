@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppLineChart } from '@/components/charts/line-chart'
+import { CHART_COLORS } from '@/lib/chart-colors'
 import type { SuccessScore } from '@/lib/types/database'
 
 function fmtDollar(v: number) { return `$${v.toLocaleString('en-US', { maximumFractionDigits: 0 })}` }
@@ -141,7 +142,7 @@ export default async function SuccessScorePage() {
           <AppLineChart
             data={chartData}
             xKey="year"
-            lines={[{ key: 'score', color: '#27AE60', name: 'ESOP Success Score' }]}
+            lines={[{ key: 'score', color: CHART_COLORS.green, name: 'ESOP Success Score' }]}
             height={350}
             formatType="percent"
           />

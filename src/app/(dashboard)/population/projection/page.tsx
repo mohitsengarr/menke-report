@@ -51,7 +51,7 @@ export default function PopulationProjectionPage() {
                 className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
             </div>
             <button onClick={calculate}
-              className="px-4 py-2 bg-[#1B2A4A] text-white rounded-lg hover:bg-[#2C3E6B] text-sm font-medium">
+              className="px-4 py-2 bg-menke-navy text-white rounded-lg hover:bg-menke-navy-light text-sm font-medium">
               Calculate Projection
             </button>
           </div>

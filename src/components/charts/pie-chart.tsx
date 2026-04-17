@@ -1,8 +1,7 @@
 'use client'
 
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-
-const COLORS = ['#1B2A4A', '#3B7DD8', '#27AE60', '#E67E22', '#C0392B', '#8E44AD', '#2C3E50', '#16A085']
+import { CHART_PALETTE } from '@/lib/chart-colors'
 
 type PieChartProps = {
   data: { name: string; value: number }[]
@@ -20,7 +19,7 @@ export function AppPieChart({ data, height = 300 }: PieChartProps) {
         <Pie data={data} cx="50%" cy="50%" labelLine={false} outerRadius={100} dataKey="value"
           label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(1)}%`}>
           {data.map((_, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            <Cell key={`cell-${index}`} fill={CHART_PALETTE[index % CHART_PALETTE.length]} />
           ))}
         </Pie>
         <Tooltip formatter={(value) => Number(value).toLocaleString()} />

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppBarChart } from '@/components/charts/bar-chart'
+import { CHART_COLORS } from '@/lib/chart-colors'
 import type { PopulationAnalysis } from '@/lib/types/database'
 
 const fmtDollar = (v: number) => `$${v.toLocaleString()}`
@@ -87,7 +88,7 @@ export default async function PopulationPage() {
           <AppBarChart
             data={chartData}
             xKey="year"
-            bars={[{ key: 'active_participants', color: '#1B2A4A', name: 'Active Participants' }]}
+            bars={[{ key: 'active_participants', color: CHART_COLORS.navy, name: 'Active Participants' }]}
             height={350}
           />
         </CardContent>

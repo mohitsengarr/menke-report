@@ -46,6 +46,20 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* MenkeReport Brand Colors */
+  --color-menke-navy: var(--menke-navy);
+  --color-menke-navy-light: var(--menke-navy-light);
+  --color-menke-navy-dark: var(--menke-navy-dark);
+  --color-menke-blue: var(--menke-blue);
+  --color-menke-blue-light: var(--menke-blue-light);
+  --color-menke-gold: var(--menke-gold);
+
+  /* Semantic Colors */
+  --color-success: var(--color-success-base);
+  --color-warning: var(--color-warning-base);
+  --color-error: var(--color-error-base);
+  --color-info: var(--color-info-base);
 }
 
 :root {
@@ -81,6 +95,24 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* MenkeReport Brand Colors */
+  --menke-navy: #1B2A4A;
+  --menke-navy-light: #2C3E6B;
+  --menke-navy-dark: #111D33;
+  --menke-blue: #3B7DD8;
+  --menke-blue-light: #5B9AE8;
+  --menke-gold: #D4A843;
+
+  /* Semantic Colors */
+  --color-success-base: #059669;
+  --color-success-light: #D1FAE5;
+  --color-warning-base: #D97706;
+  --color-warning-light: #FEF3C7;
+  --color-error-base: #DC2626;
+  --color-error-light: #FEE2E2;
+  --color-info-base: #2563EB;
+  --color-info-light: #DBEAFE;
 }
 
 .dark {

@@ -1,5 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { CHART_COLORS } from '@/lib/chart-colors'
+
+/** Brand colors for the standalone HTML report (mirrors globals.css) */
+const BRAND = {
+  navy: CHART_COLORS.navy,
+  navyLight: '#2C3E6B',
+  blue: CHART_COLORS.blue,
+  gold: '#D4A843',
+} as const
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -82,22 +91,22 @@ function buildReportHTML(data: {
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.6; }
     .page { page-break-after: always; padding: 40px 60px; min-height: 100vh; }
     .page:last-child { page-break-after: avoid; }
-    h1 { color: #1B2A4A; font-size: 28px; margin-bottom: 8px; }
-    h2 { color: #2C3E6B; font-size: 20px; margin: 24px 0 12px; border-bottom: 2px solid #3B7DD8; padding-bottom: 6px; }
-    h3 { color: #3B7DD8; font-size: 16px; margin: 16px 0 8px; }
+    h1 { color: ${BRAND.navy}; font-size: 28px; margin-bottom: 8px; }
+    h2 { color: ${BRAND.navyLight}; font-size: 20px; margin: 24px 0 12px; border-bottom: 2px solid ${BRAND.blue}; padding-bottom: 6px; }
+    h3 { color: ${BRAND.blue}; font-size: 16px; margin: 16px 0 8px; }
     p { margin-bottom: 8px; font-size: 13px; }
     table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
-    th { background: #1B2A4A; color: white; padding: 8px 10px; text-align: center; font-weight: 600; }
+    th { background: ${BRAND.navy}; color: white; padding: 8px 10px; text-align: center; font-weight: 600; }
     td { padding: 6px 10px; border: 1px solid #ddd; }
     tr:nth-child(even) { background: #f8f9fa; }
     .cover { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
     .cover h1 { font-size: 42px; margin-bottom: 4px; }
-    .cover .subtitle { font-size: 18px; color: #3B7DD8; margin-bottom: 16px; }
-    .cover .gold-line { width: 120px; height: 3px; background: #D4A843; margin: 20px auto; }
+    .cover .subtitle { font-size: 18px; color: ${BRAND.blue}; margin-bottom: 16px; }
+    .cover .gold-line { width: 120px; height: 3px; background: ${BRAND.gold}; margin: 20px auto; }
     .cover .meta { color: #888; font-size: 12px; margin-top: 40px; }
     .kpi-row { display: flex; gap: 16px; margin: 20px 0; }
-    .kpi { flex: 1; text-align: center; padding: 16px; background: #E8F0FE; border: 1px solid #3B7DD8; border-radius: 8px; }
-    .kpi .value { font-size: 24px; font-weight: 700; color: #1B2A4A; }
+    .kpi { flex: 1; text-align: center; padding: 16px; background: #E8F0FE; border: 1px solid ${BRAND.blue}; border-radius: 8px; }
+    .kpi .value { font-size: 24px; font-weight: 700; color: ${BRAND.navy}; }
     .kpi .label { font-size: 10px; color: #888; margin-top: 4px; }
     .footer { text-align: center; font-size: 10px; color: #aaa; margin-top: 40px; padding-top: 16px; border-top: 1px solid #ddd; }
     @media print {

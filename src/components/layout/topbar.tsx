@@ -54,7 +54,7 @@ export function Topbar({ profile }: { profile: Profile | null }) {
             </svg>
           </button>
           <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="text-xl font-bold text-[#1B2A4A]">MENKE</span>
+            <span className="text-xl font-bold text-menke-navy">MENKE</span>
             <span className="hidden sm:inline text-xs text-gray-400 border-l pl-2 ml-1">ESOP ADVISORS SINCE 1974</span>
           </Link>
         </div>
@@ -68,7 +68,7 @@ export function Topbar({ profile }: { profile: Profile | null }) {
             <button
               type="button"
               onClick={() => setOpen(!open)}
-              className="flex items-center justify-center h-9 w-9 rounded-full bg-[#1B2A4A] text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="flex items-center justify-center h-9 w-9 rounded-full bg-menke-navy text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               aria-label="User menu"
             >
               {profile?.avatar_url ? (

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppLineChart } from '@/components/charts/line-chart'
 import { AppPieChart } from '@/components/charts/pie-chart'
+import { CHART_COLORS } from '@/lib/chart-colors'
 import type { RepurchaseObligation, ShareTurnoverSchedule } from '@/lib/types/database'
 
 const fmtDollar = (v: number) => `$${(v / 1_000_000).toFixed(1)}M`
@@ -100,7 +101,7 @@ export default async function RepurchasePage() {
             <AppLineChart
               data={lineData}
               xKey="year"
-              lines={[{ key: 'total_ro', color: '#C0392B', name: 'Total RO' }]}
+              lines={[{ key: 'total_ro', color: CHART_COLORS.red, name: 'Total RO' }]}
               formatType="dollarM"
               height={300}
             />

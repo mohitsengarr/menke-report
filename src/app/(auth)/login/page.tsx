@@ -48,7 +48,7 @@ export default function LoginPage() {
         transition={{ duration: 0.6, delay: 0.1 }}
         className="text-center mb-8"
       >
-        <h1 className="text-3xl font-bold text-[#1B2A4A]">MENKE</h1>
+        <h1 className="text-3xl font-bold text-menke-navy">MENKE</h1>
         <p className="text-sm text-gray-500 tracking-widest">ESOP ADVISORS SINCE 1974</p>
       </motion.div>
 
@@ -94,7 +94,7 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full bg-[#1B2A4A] hover:bg-[#2C3E6B]" disabled={loading}>
+            <Button type="submit" className="w-full bg-menke-navy hover:bg-menke-navy-light" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
             <p className="text-sm text-gray-500">

@@ -88,7 +88,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-6 mb-6">
             <Avatar className="h-20 w-20">
               <AvatarImage src={profile.avatar_url || undefined} />
-              <AvatarFallback className="bg-[#1B2A4A] text-white text-2xl">
+              <AvatarFallback className="bg-menke-navy text-white text-2xl">
                 {profile.username.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -119,7 +119,7 @@ export default function ProfilePage() {
               <Label>Role</Label>
               <Input value={profile.role} disabled className="bg-gray-50 capitalize" />
             </div>
-            <Button type="submit" className="bg-[#1B2A4A] hover:bg-[#2C3E6B]" disabled={loading}>
+            <Button type="submit" className="bg-menke-navy hover:bg-menke-navy-light" disabled={loading}>
               {loading ? 'Saving...' : 'Save Changes'}
             </Button>
           </form>

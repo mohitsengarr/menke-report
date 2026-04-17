@@ -134,7 +134,7 @@ export default function ReportPage() {
               <button
                 onClick={handleGeneratePDF}
                 disabled={pdfLoading}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#1B2A4A] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#2C3E6B] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 rounded-lg bg-menke-navy px-4 py-2.5 text-sm font-medium text-white hover:bg-menke-navy-light transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {pdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
                 {pdfLoading ? 'Generating...' : 'Generate PDF'}
@@ -142,7 +142,7 @@ export default function ReportPage() {
               <button
                 onClick={handleGeneratePPTX}
                 disabled={pptxLoading}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#3B7DD8] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#2C6BBF] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 rounded-lg bg-menke-blue px-4 py-2.5 text-sm font-medium text-white hover:bg-menke-blue transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {pptxLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Presentation className="h-4 w-4" />}
                 {pptxLoading ? 'Generating...' : 'Generate PPTX'}
@@ -163,9 +163,9 @@ export default function ReportPage() {
             <div className="rounded-lg border border-gray-200 bg-white shadow-inner">
               {/* Mock cover page */}
               <div className="flex flex-col items-center justify-center p-8 min-h-[400px] text-center space-y-6">
-                <div className="w-16 h-1 bg-[#1B2A4A] rounded-full" />
+                <div className="w-16 h-1 bg-menke-navy rounded-full" />
                 <div>
-                  <h2 className="text-xl font-bold text-[#1B2A4A] leading-tight">
+                  <h2 className="text-xl font-bold text-menke-navy leading-tight">
                     {title || 'Untitled Report'}
                   </h2>
                   {subtitle && (

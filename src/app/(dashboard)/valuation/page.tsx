@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppLineChart } from '@/components/charts/line-chart'
+import { CHART_COLORS } from '@/lib/chart-colors'
 import type { ValuationProjection } from '@/lib/types/database'
 
 function fmt(v: number) { return `$${(v / 1_000_000).toFixed(1)}M` }
@@ -95,7 +96,7 @@ export default async function ValuationPage() {
           <AppLineChart
             data={chartData}
             xKey="year"
-            lines={[{ key: 'esop_valuation', color: '#1B2A4A', name: 'ESOP Valuation' }]}
+            lines={[{ key: 'esop_valuation', color: CHART_COLORS.navy, name: 'ESOP Valuation' }]}
             formatType="dollarM"
             height={280}
           />
@@ -108,7 +109,7 @@ export default async function ValuationPage() {
           <AppLineChart
             data={chartData}
             xKey="year"
-            lines={[{ key: 'price_per_share', color: '#3B7DD8', name: 'Price Per Share' }]}
+            lines={[{ key: 'price_per_share', color: CHART_COLORS.blue, name: 'Price Per Share' }]}
             formatType="dollar"
             height={280}
           />
