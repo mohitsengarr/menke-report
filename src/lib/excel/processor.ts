@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs'
 import { createClient } from '@/lib/supabase/server'
+import { runFormulaEngine, type ParticipantInput, type PlanSettings } from '@/lib/formulas/engine'
 
 /**
  * Processes an uploaded ESOP Excel workbook:
@@ -40,15 +41,99 @@ export async function processExcelWorkbook(userId: string, fileBuffer: Buffer) {
   const beginningPrices = extractBeginningPrices(ws1)
 
   // ──────────────────────────────────────────
-  // 3. Extract analytical outputs from ws1 and ws2
+  // 3. Run TypeScript Formula Engine (replaces Excel formula computation)
   // ──────────────────────────────────────────
-  const repurchaseData = extractRepurchase(ws1)        // B32:M42
-  const populationData = extractPopulation(ws1)         // O32:Y42
-  const shareTurnoverData = extractShareTurnover(ws1)   // G49:M59
-  const avgAgeTenureActive = extractAgeTenureActive(ws1) // O49:U59
-  const avgAgeTenureTerminated = extractAgeTenureBalance(ws1) // O71:V81
-  const valuationProjections = extractValuationProjections(ws2) // C49:K59
-  const successScores = extractSuccessScores(ws2)        // C27:J37
+  // Convert extracted data into formula engine inputs
+  const engineParticipants: ParticipantInput[] = participants.map(p => ({
+    row_number: p.row_number,
+    name: p.name,
+    birth_date: p.birth_date,
+    hire_date: p.hire_date,
+    esop_date: p.esop_date,
+    term_date: p.term_date,
+    reason: p.reason,
+    vesting_pct: p.vesting_pct,
+    plan_comp: p.plan_comp,
+    total_cash: p.total_cash,
+    shares: p.shares || [],
+    diversifications: p.diversifications || [],
+    gender: p.gender,
+    nonvested: p.nonvested,
+    oia_tranche: p.oia_tranche || 0,
+    stock_tranche: p.stock_tranche || 0,
+    divers: p.divers || 0,
+    comp_years: p.comp_years || 0,
+  }))
+
+  // Build share prices from beginning prices (compound growth for 11 years)
+  const basePrice = valuationInputs.company_esop_value / (valuationInputs.total_esop_shares || 1)
+  const priceGrowthRates = [
+    beginningPrices.share_price_one, beginningPrices.share_price_two,
+    beginningPrices.share_price_three, beginningPrices.share_price_four,
+    beginningPrices.share_price_five,
+    beginningPrices.share_price_ten, beginningPrices.share_price_ten,
+    beginningPrices.share_price_ten, beginningPrices.share_price_ten,
+    beginningPrices.share_price_ten, beginningPrices.share_price_ten,
+  ]
+  const sharePrices: number[] = [basePrice]
+  for (let i = 0; i < 10; i++) {
+    sharePrices.push(sharePrices[i]! * (1 + (priceGrowthRates[i] || 0.05)))
+  }
+
+  const engineSettings: PlanSettings = {
+    compensationLimit: provisions.compensation_limit,
+    compensationLimitIncrease: provisions.compensation_limit_increase,
+    periodYears: provisions.period_years,
+    distributionYears: provisions.distribution_years,
+    planRetirement: provisions.plan_retirement,
+    serviceRetirement: provisions.service_retirement,
+    compGrowthRates: [provisions.compensation_one_year, provisions.compensation_five_year, provisions.compensation_ten_year],
+    turnoverTable: provisions.turnover_five_year || 'T-1',
+    vestingPeriod: allocations.vesting_period,
+    lumpSumLimit: allocations.lump_sum_distribution_limit,
+    serviceHours: allocations.service_hours,
+    oiaAnnualReturn: allocations.oia_annual_return,
+    annualESOPContribution: allocations.annual_esop_contribution,
+    segregation: allocations.segregation,
+    planSize: allocations.plan_size,
+    fundingMechanism: funding.funding_mechanism,
+    planActiveFrozen: funding.plan_active_frozen,
+    inServiceAge: distributions.in_service_distrib_1_age,
+    inServiceAmount: distributions.in_service_distrib_1_amount,
+    diversYears: [
+      distributions.divers_year_one, distributions.divers_year_two,
+      distributions.divers_year_three, distributions.divers_year_four,
+      distributions.divers_year_five, distributions.divers_year_final,
+    ],
+    esopFormationDate: distributions.esop_formation_date,
+    scCorporation: distributions.sc_corporation,
+    ebitda: valuationInputs.ebitda,
+    capRate: valuationInputs.cap_rate,
+    ebitdaGrowthRate: valuationInputs.ebitda_growth_rate,
+    totalESOPShares: valuationInputs.total_esop_shares,
+    totalSharesOutstanding: valuationInputs.total_shares_outstanding,
+    distributionPeriod: allocations.distribution_years || 5,
+    maxDistributionYears: provisions.period_years || 5,
+    taxBenefitAmount: funding.s_corp_distributions || 0,
+    diversificationThreshold: allocations.lump_sum_distribution_limit || 7000,
+    retirementAge: distributions.in_service_distrib_1_age || 55,
+    deathBenefitBase: distributions.in_service_distrib_1_amount || 0,
+  }
+
+  const planYearEnd = funding.plan_year_end ? new Date(funding.plan_year_end) : new Date()
+  const engineOutput = runFormulaEngine(engineParticipants, engineSettings, planYearEnd, sharePrices)
+
+  // Map engine output to database format
+  // Map engine output property names to local variables
+  const repurchaseData = engineOutput.repurchaseObligations ?? []
+  const populationData = engineOutput.populationAnalysis ?? []
+  const shareTurnoverData = engineOutput.shareTurnover ?? []
+  const valuationProjections = engineOutput.valuationProjections ?? []
+  const successScores = engineOutput.successScores ?? []
+
+  // Extract pre-computed aging data from Excel (these are display-only, not formula-dependent)
+  const avgAgeTenureActive = extractAgeTenureActive(ws1)
+  const avgAgeTenureTerminated = extractAgeTenureBalance(ws1)
 
   // ──────────────────────────────────────────
   // 4. Upsert everything to Supabase

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, TrendingUp, Users, Award, Settings,
-  Upload, Database, History, Info, FileText, UserCircle
+  Upload, Database, History, Info, FileText, UserCircle, Calculator
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Profile } from '@/lib/types/database'
@@ -29,6 +29,7 @@ const navItems = [
   { label: 'Backup History', href: '/history', icon: History },
   { label: 'Reports', href: '/report', icon: FileText },
   { label: 'About', href: '/about', icon: Info },
+  { label: 'Formula Engine', href: '/formulas', icon: Calculator },
 ]
 
 export function Sidebar({ profile }: { profile: Profile | null }) {
