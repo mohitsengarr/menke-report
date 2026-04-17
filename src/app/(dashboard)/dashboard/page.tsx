@@ -74,9 +74,9 @@ export default async function DashboardPage() {
   const valSnapRows = [0, 4, 9].map(i => valuations?.[i]).filter(Boolean)
 
   // RO Drivers: aggregate turnover schedule data across all years
-  const totalDivers = turnover?.reduce((s, r) => s + (r.diversification_shares ?? 0), 0) ?? 0
-  const totalRetire = turnover?.reduce((s, r) => s + (r.retirement_death_disability_shares ?? 0), 0) ?? 0
-  const totalTurnoverShares = turnover?.reduce((s, r) => s + (r.turnover_shares ?? 0), 0) ?? 0
+  const totalDivers = turnover?.reduce((s: number, r: any) => s + (Number(r.diversification) || 0), 0) ?? 0
+  const totalRetire = turnover?.reduce((s: number, r: any) => s + (Number(r.retirement_death_disability) || 0), 0) ?? 0
+  const totalTurnoverShares = turnover?.reduce((s: number, r: any) => s + (Number(r.turnover) || 0), 0) ?? 0
   const driverTotal = totalDivers + totalRetire + totalTurnoverShares
   const diversPct = driverTotal > 0 ? ((totalDivers / driverTotal) * 100).toFixed(1) : '0.0'
   const retirePct = driverTotal > 0 ? ((totalRetire / driverTotal) * 100).toFixed(1) : '0.0'
@@ -85,17 +85,19 @@ export default async function DashboardPage() {
   // Population & Compensation: latest year metrics
   const latestPop = population && population.length > 0 ? population[population.length - 1] : null
   const activeParticipants = latestPop?.active_participants?.toLocaleString('en-US', { maximumFractionDigits: 0 }) ?? '0'
-  const avgTotalComp = latestPop?.average_total_compensation
-    ? Math.round(latestPop.average_total_compensation).toLocaleString('en-US')
+  const avgTotalComp = latestPop?.avg_total_compensation
+    ? Math.round(Number(latestPop.avg_total_compensation)).toLocaleString('en-US')
     : '0'
   const benefitRate = latestPop?.effective_benefit_rate != null
-    ? (latestPop.effective_benefit_rate > 1
-        ? latestPop.effective_benefit_rate.toFixed(1)
-        : (latestPop.effective_benefit_rate * 100).toFixed(1))
+    ? (() => {
+        const val = Number(latestPop.effective_benefit_rate)
+        return val > 1 ? val.toFixed(1) : (val * 100).toFixed(2)
+      })()
     : 'N/A'
-  const shareTurn = latestPop?.share_turn_rate != null
-    ? (latestPop.share_turn_rate > 1
-        ? latestPop.share_turn_rate.toFixed(1)
+  const shareTurn = latestPop?.share_turn != null
+    ? (() => {
+        const val = Number(latestPop.share_turn)
+        return val > 1 ? val.toFixed(1) : (val * 100).toFixed(2)
         : (latestPop.share_turn_rate * 100).toFixed(1))
     : 'N/A'
 

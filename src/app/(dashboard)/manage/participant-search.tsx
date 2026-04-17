@@ -64,7 +64,7 @@ export function ParticipantSearch({ rows }: { rows: InputData[] }) {
                 <td className="py-2 pr-4">{r.birth_date ?? '---'}</td>
                 <td className="py-2 pr-4">{r.hire_date ?? '---'}</td>
                 <td className="py-2 pr-4 text-right">${r.plan_comp.toLocaleString()}</td>
-                <td className="py-2 pr-4 text-right">{(r.vesting_pct * 100).toFixed(0)}%</td>
+                <td className="py-2 pr-4 text-right">{Number(r.vesting_pct).toFixed(0)}%</td>
                 <td className="py-2 pr-4">{r.term_date ?? '---'}</td>
                 <td className="py-2">{r.reason ?? '---'}</td>
               </tr>
