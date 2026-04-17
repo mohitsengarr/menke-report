@@ -89,7 +89,7 @@ export default async function RepurchasePage() {
               data={lineData}
               xKey="year"
               lines={[{ key: 'total_ro', color: '#C0392B', name: 'Total RO' }]}
-              formatY={fmtDollar}
+              formatType="dollarM"
               height={300}
             />
           </CardContent>

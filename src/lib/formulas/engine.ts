@@ -1011,31 +1011,36 @@ function buildSuccessScores(
   settings: PlanSettings
 ): SuccessScoreRow[] {
   return roRows.map((ro, idx) => {
-    const cashSource = settings.annualESOPContribution
-      + (settings.scCorporation === 'Yes' ? settings.taxBenefitAmount : 0)
+    // Cash source = EBITDA-based annual contribution (dollar amount)
+    // annualESOPContribution is a rate (e.g., 0.05 = 5%), multiply by projected EBITDA
+    const projectedEbitda = settings.ebitda * Math.pow(1 + settings.ebitdaGrowthRate, idx)
+    const cashSource = (projectedEbitda * settings.annualESOPContribution)
+      + (settings.scCorporation === 'S' ? settings.taxBenefitAmount : 0)
 
     const surplus = cashSource - ro.totalRepurchaseObligation
     const cashBurn = cashSource > 0
       ? ro.totalRepurchaseObligation / cashSource : 0
 
-    // Success score: 1-5 scale based on cash burn ratio
-    // < 0.5 = 5 (excellent), 0.5-0.75 = 4, 0.75-1.0 = 3, 1.0-1.5 = 2, >1.5 = 1
+    // Success score: 0.0 to 1.0 scale (displayed as percentage on dashboard)
+    // Based on cash burn ratio — lower burn = higher score
     let score: number
-    if (cashBurn < 0.5) score = 5
-    else if (cashBurn < 0.75) score = 4
-    else if (cashBurn < 1.0) score = 3
-    else if (cashBurn < 1.5) score = 2
-    else score = 1
+    if (cashBurn <= 0) score = 0.99   // No obligations or no cash source
+    else if (cashBurn < 0.25) score = 0.95
+    else if (cashBurn < 0.50) score = 0.85
+    else if (cashBurn < 0.75) score = 0.70
+    else if (cashBurn < 1.00) score = 0.55
+    else if (cashBurn < 1.50) score = 0.35
+    else score = 0.15
 
-    // Health check: traffic light (3=green, 2=yellow, 1=red)
+    // Health check: 0.0-1.0 scale (displayed as percentage)
     let health: number
-    if (surplus >= 0) health = 3
-    else if (surplus >= -cashSource * 0.25) health = 2
-    else health = 1
+    if (surplus >= 0) health = 1.0                        // Green: surplus
+    else if (surplus >= -cashSource * 0.25) health = 0.6  // Yellow: slight deficit
+    else health = 0.2                                     // Red: major deficit
 
-    const takeaway = health === 3
+    const takeaway = health >= 0.8
       ? 'Sustainable - cash sources exceed obligations'
-      : health === 2
+      : health >= 0.5
         ? 'Caution - obligations approaching cash capacity'
         : 'At risk - obligations exceed available cash sources'
 

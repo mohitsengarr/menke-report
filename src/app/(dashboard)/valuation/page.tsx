@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppLineChart } from '@/components/charts/line-chart'
 import type { ValuationProjection } from '@/lib/types/database'
 
-const fmt = (v: number) => `$${(v / 1_000_000).toFixed(1)}M`
-const fmtShare = (v: number) => `$${v.toFixed(2)}`
+function fmt(v: number) { return `$${(v / 1_000_000).toFixed(1)}M` }
+function fmtShare(v: number) { return `$${v.toFixed(2)}` }
 
 export default async function ValuationPage() {
   const supabase = await createClient()
@@ -92,7 +92,7 @@ export default async function ValuationPage() {
               { key: 'esop_valuation', color: '#1B2A4A', name: 'ESOP Valuation' },
               { key: 'price_per_share', color: '#3B7DD8', name: 'Price Per Share' },
             ]}
-            formatY={fmt}
+            formatType="dollarM"
             height={350}
           />
         </CardContent>

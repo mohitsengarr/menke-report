@@ -4,11 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppLineChart } from '@/components/charts/line-chart'
 import type { SuccessScore } from '@/lib/types/database'
 
-const fmtDollar = (v: number) => `$${(v / 1_000_000).toFixed(1)}M`
+function fmtDollar(v: number) { return `$${v.toLocaleString('en-US', { maximumFractionDigits: 0 })}` }
 
 function getHealthLabel(score: number) {
-  if (score >= 80) return { label: 'Strong', color: 'bg-green-100 text-green-800 border-green-300' }
-  if (score >= 50) return { label: 'Moderate', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' }
+  // Score is 0.0-1.0 scale
+  if (score >= 0.8) return { label: 'Strong', color: 'bg-green-100 text-green-800 border-green-300' }
+  if (score >= 0.5) return { label: 'Moderate', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' }
   return { label: 'Impaired', color: 'bg-red-100 text-red-800 border-red-300' }
 }
 
