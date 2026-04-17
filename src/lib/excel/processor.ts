@@ -115,8 +115,8 @@ export async function processExcelWorkbook(userId: string, fileBuffer: Buffer) {
     distributionPeriod: allocations.distribution_years || 5,
     maxDistributionYears: provisions.period_years || 5,
     taxBenefitAmount: funding.s_corp_distributions || 0,
-    diversificationThreshold: allocations.lump_sum_distribution_limit || 7000,
-    retirementAge: distributions.in_service_distrib_1_age || 55,
+    diversificationThreshold: 55, // IRC 401(a)(28) diversification eligibility age
+    retirementAge: provisions.plan_retirement || 65, // Normal retirement age from plan provisions
     deathBenefitBase: distributions.in_service_distrib_1_amount || 0,
   }
 
@@ -172,27 +172,74 @@ export async function processExcelWorkbook(userId: string, fileBuffer: Buffer) {
   await supabase.from('valuation_inputs').insert({ ...valuationInputs, user_id: userId })
   await supabase.from('beginning_share_prices').insert({ ...beginningPrices, user_id: userId })
 
-  // Insert analytical data
-  if (repurchaseData.length > 0) {
-    await supabase.from('repurchase_obligations').insert(repurchaseData.map(r => ({ ...r, user_id: userId })))
+  // Insert analytical data — map camelCase engine output to snake_case DB columns
+  if (valuationProjections.length > 0) {
+    await supabase.from('valuation_projections').insert(valuationProjections.map(r => ({
+      user_id: userId, year: r.year, esop_valuation: r.esopValuation,
+      esop_shares: r.esopShares, pct_esop_shares: r.pctEsopShares,
+      other_shares: r.otherShares, pct_other_shares: r.pctOtherShares,
+      total_shares: r.totalShares, price_per_share: r.pricePerShare,
+      share_price_change: r.sharePriceChange,
+    })))
   }
-  if (populationData.length > 0) {
-    await supabase.from('population_analyses').insert(populationData.map(r => ({ ...r, user_id: userId })))
+  if (repurchaseData.length > 0) {
+    await supabase.from('repurchase_obligations').insert(repurchaseData.map(r => ({
+      user_id: userId, year: r.year,
+      calendar_year_for_payout: r.calendarYearForPayout,
+      share_price: r.sharePrice, esop_shares_allocated: r.esopSharesAllocated,
+      shares_turned: r.sharesTurned, oia_balance: r.oiaBalance,
+      esop_shares_redeemed: r.esopSharesRedeemed,
+      diversification: r.diversification,
+      in_service_distributions: r.inServiceDistributions,
+      retirement_death_disability: r.retirementDeathDisability,
+      turnover: r.turnover,
+      total_repurchase_obligation: r.totalRepurchaseObligation,
+      npv: r.npv,
+    })))
   }
   if (shareTurnoverData.length > 0) {
-    await supabase.from('share_turnover_schedules').insert(shareTurnoverData.map(r => ({ ...r, user_id: userId })))
+    await supabase.from('share_turnover_schedules').insert(shareTurnoverData.map(r => ({
+      user_id: userId, year: r.year,
+      calendar_year_for_payout: r.calendarYearForPayout,
+      diversification: r.diversification,
+      in_service_distributions: r.inServiceDistributions,
+      retirement_death_disability: r.retirementDeathDisability,
+      turnover: r.turnover, total_shares: r.totalShares,
+    })))
+  }
+  if (populationData.length > 0) {
+    await supabase.from('population_analyses').insert(populationData.map(r => ({
+      user_id: userId, year: r.year,
+      active_participants: r.activeParticipants,
+      covered_compensation: r.coveredCompensation,
+      avg_cash_compensation: r.avgCashCompensation,
+      avg_esop_compensation: r.avgEsopCompensation,
+      avg_total_compensation: r.avgTotalCompensation,
+      stock_allocations: r.stockAllocations,
+      cash_contributions: r.cashContributions,
+      fringe: r.fringe,
+      effective_benefit_rate: r.effectiveBenefitRate,
+      share_turn: r.shareTurn,
+    })))
+  }
+  if (successScores.length > 0) {
+    await supabase.from('success_scores').insert(successScores.map(r => ({
+      user_id: userId,
+      year_for_payout: r.yearForPayout,
+      repurchase_obligation: r.repurchaseObligation,
+      cash_source: r.cashSource,
+      surplus_or_deficit: r.surplusOrDeficit,
+      ro_cash_burn: r.roCashBurn,
+      esop_success_score: r.esopSuccessScore,
+      health_check: r.healthCheck,
+      key_takeaway: r.keyTakeaway,
+    })))
   }
   if (avgAgeTenureActive.length > 0) {
     await supabase.from('average_age_tenure_active').insert(avgAgeTenureActive.map(r => ({ ...r, user_id: userId })))
   }
   if (avgAgeTenureTerminated.length > 0) {
     await supabase.from('average_age_tenure_terminated').insert(avgAgeTenureTerminated.map(r => ({ ...r, user_id: userId })))
-  }
-  if (valuationProjections.length > 0) {
-    await supabase.from('valuation_projections').insert(valuationProjections.map(r => ({ ...r, user_id: userId })))
-  }
-  if (successScores.length > 0) {
-    await supabase.from('success_scores').insert(successScores.map(r => ({ ...r, user_id: userId })))
   }
 
   return {
