@@ -15,6 +15,8 @@ type FieldDef = {
   type?: 'number' | 'text' | 'date' | 'select'
   options?: string[]
   suffix?: string
+  placeholder?: string
+  required?: boolean
 }
 
 function FormField({
@@ -31,6 +33,9 @@ function FormField({
     <div className="space-y-1">
       <label htmlFor={id} className="block text-sm font-medium text-gray-700">
         {field.label}
+        {field.required && (
+          <span className="ml-0.5 text-red-500">*</span>
+        )}
         {field.suffix && (
           <span className="ml-1 text-xs text-gray-400">({field.suffix})</span>
         )}
@@ -53,6 +58,7 @@ function FormField({
           id={id}
           type={field.type ?? 'text'}
           className={inputCls}
+          placeholder={field.placeholder}
           value={value ?? ''}
           onChange={(e) =>
             onChange(
@@ -90,84 +96,84 @@ const TABLE_MAP: Record<TabName, string> = {
 
 const FIELDS: Record<TabName, FieldDef[]> = {
   'Plan Provisions': [
-    { key: 'compensation_limit', label: 'Compensation Limit', type: 'number' },
-    { key: 'compensation_limit_increase', label: 'Compensation Limit Increase', type: 'number', suffix: '%' },
-    { key: 'period_years', label: 'Period (Years)', type: 'number' },
-    { key: 'distribution_years', label: 'Distribution Years', type: 'number' },
-    { key: 'plan_retirement', label: 'Plan Retirement', type: 'number' },
-    { key: 'service_retirement', label: 'Service Retirement', type: 'number' },
-    { key: 'compensation_one_year', label: 'Compensation 1-Year', type: 'number', suffix: '%' },
-    { key: 'compensation_five_year', label: 'Compensation 5-Year', type: 'number', suffix: '%' },
-    { key: 'compensation_ten_year', label: 'Compensation 10-Year', type: 'number', suffix: '%' },
-    { key: 'turnover_five_year', label: 'Turnover 5-Year', type: 'text' },
-    { key: 'turnover_ten_year', label: 'Turnover 10-Year', type: 'text' },
+    { key: 'compensation_limit', label: 'Compensation Limit', type: 'number', placeholder: '360000', required: true },
+    { key: 'compensation_limit_increase', label: 'Compensation Limit Increase', type: 'number', suffix: '%', placeholder: '5' },
+    { key: 'period_years', label: 'Period (Years)', type: 'number', placeholder: '5' },
+    { key: 'distribution_years', label: 'Distribution Years', type: 'number', placeholder: '5' },
+    { key: 'plan_retirement', label: 'Plan Retirement', type: 'number', placeholder: '65', required: true },
+    { key: 'service_retirement', label: 'Service Retirement', type: 'number', placeholder: '5' },
+    { key: 'compensation_one_year', label: 'Compensation 1-Year', type: 'number', suffix: '%', placeholder: '5' },
+    { key: 'compensation_five_year', label: 'Compensation 5-Year', type: 'number', suffix: '%', placeholder: '5' },
+    { key: 'compensation_ten_year', label: 'Compensation 10-Year', type: 'number', suffix: '%', placeholder: '5' },
+    { key: 'turnover_five_year', label: 'Turnover 5-Year', type: 'text', placeholder: 'T-1' },
+    { key: 'turnover_ten_year', label: 'Turnover 10-Year', type: 'text', placeholder: 'T-1' },
   ],
   Allocations: [
     { key: 'plan_size', label: 'Plan Size', type: 'select', options: ['Small', 'Medium', 'Large'] },
-    { key: 'service_hours', label: 'Service Hours', type: 'number' },
-    { key: 'lump_sum_distribution_limit', label: 'Lump Sum Distribution Limit', type: 'number' },
-    { key: 'distribution_years', label: 'Distribution Years', type: 'number' },
+    { key: 'service_hours', label: 'Service Hours', type: 'number', placeholder: '1000' },
+    { key: 'lump_sum_distribution_limit', label: 'Lump Sum Distribution Limit', type: 'number', placeholder: '7000' },
+    { key: 'distribution_years', label: 'Distribution Years', type: 'number', placeholder: '5' },
     { key: 'end_requirement', label: 'End Requirement', type: 'select', options: ['Yes', 'No'] },
     { key: 'one_requirement', label: 'One Requirement', type: 'select', options: ['Yes', 'No'] },
-    { key: 'internal_loan_1', label: 'Internal Loan 1', type: 'number' },
+    { key: 'internal_loan_1', label: 'Internal Loan 1', type: 'number', placeholder: '0' },
     { key: 'internal_loan_1_date', label: 'Internal Loan 1 Date', type: 'date' },
-    { key: 'internal_loan_2', label: 'Internal Loan 2', type: 'number' },
+    { key: 'internal_loan_2', label: 'Internal Loan 2', type: 'number', placeholder: '0' },
     { key: 'internal_loan_2_date', label: 'Internal Loan 2 Date', type: 'date' },
-    { key: 'internal_loan_3', label: 'Internal Loan 3', type: 'number' },
+    { key: 'internal_loan_3', label: 'Internal Loan 3', type: 'number', placeholder: '0' },
     { key: 'internal_loan_3_date', label: 'Internal Loan 3 Date', type: 'date' },
-    { key: 'vesting_period', label: 'Vesting Period', type: 'number' },
-    { key: 'internal_loan_basis', label: 'Internal Loan Basis', type: 'number' },
-    { key: 'oia_annual_return', label: 'OIA Annual Return', type: 'number', suffix: '%' },
-    { key: 'annual_esop_contribution', label: 'Annual ESOP Contribution', type: 'number', suffix: '%' },
+    { key: 'vesting_period', label: 'Vesting Period', type: 'number', placeholder: '6' },
+    { key: 'internal_loan_basis', label: 'Internal Loan Basis', type: 'number', placeholder: '0' },
+    { key: 'oia_annual_return', label: 'OIA Annual Return', type: 'number', suffix: '%', placeholder: '4' },
+    { key: 'annual_esop_contribution', label: 'Annual ESOP Contribution', type: 'number', suffix: '%', placeholder: '25' },
     { key: 'segregation', label: 'Segregation', type: 'select', options: ['Yes', 'No'] },
   ],
   Distributions: [
-    { key: 'in_service_distrib_1_age', label: 'In-Service Distrib 1 Age', type: 'number' },
-    { key: 'in_service_distrib_1_amount', label: 'In-Service Distrib 1 Amount', type: 'number', suffix: '%' },
-    { key: 'in_service_distrib_2_frequency', label: 'In-Service Distrib 2 Frequency', type: 'number' },
-    { key: 'in_service_distrib_2_amount', label: 'In-Service Distrib 2 Amount', type: 'number', suffix: '%' },
-    { key: 'esop_formation_date', label: 'ESOP Formation Date', type: 'text' },
-    { key: 'divers_year_one', label: 'Diversification Year 1', type: 'number', suffix: '%' },
-    { key: 'divers_year_two', label: 'Diversification Year 2', type: 'number', suffix: '%' },
-    { key: 'divers_year_three', label: 'Diversification Year 3', type: 'number', suffix: '%' },
-    { key: 'divers_year_four', label: 'Diversification Year 4', type: 'number', suffix: '%' },
-    { key: 'divers_year_five', label: 'Diversification Year 5', type: 'number', suffix: '%' },
-    { key: 'divers_year_final', label: 'Diversification Final', type: 'number', suffix: '%' },
+    { key: 'in_service_distrib_1_age', label: 'In-Service Distrib 1 Age', type: 'number', placeholder: '55' },
+    { key: 'in_service_distrib_1_amount', label: 'In-Service Distrib 1 Amount', type: 'number', suffix: '%', placeholder: '25' },
+    { key: 'in_service_distrib_2_frequency', label: 'In-Service Distrib 2 Frequency', type: 'number', placeholder: '1' },
+    { key: 'in_service_distrib_2_amount', label: 'In-Service Distrib 2 Amount', type: 'number', suffix: '%', placeholder: '25' },
+    { key: 'esop_formation_date', label: 'ESOP Formation Date', type: 'text', placeholder: '2020' },
+    { key: 'divers_year_one', label: 'Diversification Year 1', type: 'number', suffix: '%', placeholder: '25' },
+    { key: 'divers_year_two', label: 'Diversification Year 2', type: 'number', suffix: '%', placeholder: '25' },
+    { key: 'divers_year_three', label: 'Diversification Year 3', type: 'number', suffix: '%', placeholder: '25' },
+    { key: 'divers_year_four', label: 'Diversification Year 4', type: 'number', suffix: '%', placeholder: '25' },
+    { key: 'divers_year_five', label: 'Diversification Year 5', type: 'number', suffix: '%', placeholder: '25' },
+    { key: 'divers_year_final', label: 'Diversification Final', type: 'number', suffix: '%', placeholder: '50' },
     { key: 'sc_corporation', label: 'S/C Corporation', type: 'select', options: ['S', 'C'] },
   ],
   Funding: [
-    { key: 'stub_period', label: 'Stub Period', type: 'number' },
+    { key: 'stub_period', label: 'Stub Period', type: 'number', placeholder: '0' },
     { key: 'funding_mechanism', label: 'Funding Mechanism', type: 'select', options: ['Redeem', 'OIA'] },
-    { key: 's_corp_distributions', label: 'S-Corp Distributions', type: 'number' },
+    { key: 's_corp_distributions', label: 'S-Corp Distributions', type: 'number', placeholder: '0' },
     { key: 'plan_active_frozen', label: 'Plan Active / Frozen', type: 'select', options: ['Active', 'FROZEN'] },
     { key: 'plan_year_end', label: 'Plan Year End', type: 'date' },
   ],
   'Valuation Inputs': [
-    { key: 'company_esop_value', label: 'Company ESOP Value', type: 'number' },
-    { key: 'total_shares_outstanding', label: 'Total Shares Outstanding', type: 'number' },
-    { key: 'total_esop_shares', label: 'Total ESOP Shares', type: 'number' },
-    { key: 'ebitda', label: 'EBITDA', type: 'number' },
-    { key: 'cap_rate', label: 'Cap Rate', type: 'number', suffix: '%' },
-    { key: 'dloc', label: 'DLOC', type: 'number' },
-    { key: 'dlom', label: 'DLOM', type: 'number' },
-    { key: 'lt_debt', label: 'Long-Term Debt', type: 'number' },
-    { key: 'working_capital', label: 'Working Capital', type: 'number' },
-    { key: 'excess_cash_assets', label: 'Excess Cash / Assets', type: 'number' },
-    { key: 'ebitda_growth_rate', label: 'EBITDA Growth Rate', type: 'number', suffix: '%' },
-    { key: 'stage_transaction_year_two', label: 'Stage Transaction Year 2', type: 'text' },
-    { key: 'annual_stock_allocation_two', label: 'Annual Stock Allocation 2', type: 'number' },
-    { key: 'stage_transaction_year_three', label: 'Stage Transaction Year 3', type: 'text' },
-    { key: 'annual_stock_allocation_three', label: 'Annual Stock Allocation 3', type: 'number' },
-    { key: 'total_share_second_stage', label: 'Total Share 2nd Stage', type: 'number' },
-    { key: 'total_share_third_stage', label: 'Total Share 3rd Stage', type: 'number' },
+    { key: 'company_esop_value', label: 'Company ESOP Value', type: 'number', placeholder: '0' },
+    { key: 'total_shares_outstanding', label: 'Total Shares Outstanding', type: 'number', placeholder: '10000', required: true },
+    { key: 'total_esop_shares', label: 'Total ESOP Shares', type: 'number', placeholder: '3000', required: true },
+    { key: 'ebitda', label: 'EBITDA', type: 'number', placeholder: '5000000', required: true },
+    { key: 'cap_rate', label: 'Cap Rate', type: 'number', suffix: '%', placeholder: '22.5', required: true },
+    { key: 'dloc', label: 'DLOC', type: 'number', placeholder: '0' },
+    { key: 'dlom', label: 'DLOM', type: 'number', placeholder: '0' },
+    { key: 'lt_debt', label: 'Long-Term Debt', type: 'number', placeholder: '0' },
+    { key: 'working_capital', label: 'Working Capital', type: 'number', placeholder: '0' },
+    { key: 'excess_cash_assets', label: 'Excess Cash / Assets', type: 'number', placeholder: '0' },
+    { key: 'ebitda_growth_rate', label: 'EBITDA Growth Rate', type: 'number', suffix: '%', placeholder: '5' },
+    { key: 'stage_transaction_year_two', label: 'Stage Transaction Year 2', type: 'text', placeholder: 'Year 2' },
+    { key: 'annual_stock_allocation_two', label: 'Annual Stock Allocation 2', type: 'number', placeholder: '0' },
+    { key: 'stage_transaction_year_three', label: 'Stage Transaction Year 3', type: 'text', placeholder: 'Year 3' },
+    { key: 'annual_stock_allocation_three', label: 'Annual Stock Allocation 3', type: 'number', placeholder: '0' },
+    { key: 'total_share_second_stage', label: 'Total Share 2nd Stage', type: 'number', placeholder: '0' },
+    { key: 'total_share_third_stage', label: 'Total Share 3rd Stage', type: 'number', placeholder: '0' },
   ],
   'Share Prices': [
-    { key: 'share_price_one', label: 'Share Price Year 1', type: 'number', suffix: '%' },
-    { key: 'share_price_two', label: 'Share Price Year 2', type: 'number', suffix: '%' },
-    { key: 'share_price_three', label: 'Share Price Year 3', type: 'number', suffix: '%' },
-    { key: 'share_price_four', label: 'Share Price Year 4', type: 'number', suffix: '%' },
-    { key: 'share_price_five', label: 'Share Price Year 5', type: 'number', suffix: '%' },
-    { key: 'share_price_ten', label: 'Share Price Year 10', type: 'number', suffix: '%' },
+    { key: 'share_price_one', label: 'Share Price Year 1', type: 'number', suffix: '%', placeholder: '5' },
+    { key: 'share_price_two', label: 'Share Price Year 2', type: 'number', suffix: '%', placeholder: '5' },
+    { key: 'share_price_three', label: 'Share Price Year 3', type: 'number', suffix: '%', placeholder: '5' },
+    { key: 'share_price_four', label: 'Share Price Year 4', type: 'number', suffix: '%', placeholder: '5' },
+    { key: 'share_price_five', label: 'Share Price Year 5', type: 'number', suffix: '%', placeholder: '5' },
+    { key: 'share_price_ten', label: 'Share Price Year 10', type: 'number', suffix: '%', placeholder: '5' },
   ],
 }
 
@@ -299,6 +305,10 @@ export default function SettingsPage() {
           </button>
         ))}
       </div>
+
+      <p className="text-sm text-gray-500">
+        Configure your ESOP plan parameters. Fields marked with <span className="text-red-500 font-medium">*</span> are required for accurate projections.
+      </p>
 
       {/* Message banner */}
       {message && (

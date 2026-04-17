@@ -1,9 +1,28 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { TrendingUp, DollarSign, Users, Award, Upload } from 'lucide-react'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { TrendingUp, TrendingDown, DollarSign, Users, Award, Upload, FileText, BarChart3, UsersRound, AlertTriangle } from 'lucide-react'
 
-export const metadata = { title: 'Dashboard' }
+export const metadata = { title: 'ESOP Dashboard' }
+
+function fmt(v: number | null | undefined): string {
+  if (v == null) return '$0'
+  if (Math.abs(v) >= 1e6) return '$' + (Math.round(v / 1e6 * 10) / 10) + 'M'
+  if (Math.abs(v) >= 1e3) return '$' + (Math.round(v / 1e3 * 10) / 10) + 'K'
+  return '$' + v.toLocaleString('en-US', { maximumFractionDigits: 0 })
+}
+
+function pctChange(a: number | null | undefined, b: number | null | undefined): { text: string; up: boolean } | null {
+  if (a == null || b == null || a === 0) return null
+  const pct = ((b - a) / Math.abs(a)) * 100
+  return { text: (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%', up: pct >= 0 }
+}
+
+function healthLabel(score: number): { label: string; color: string } {
+  if (score >= 0.7) return { label: 'Healthy', color: 'bg-green-100 text-green-800' }
+  if (score >= 0.4) return { label: 'Moderate', color: 'bg-yellow-100 text-yellow-800' }
+  return { label: 'At Risk', color: 'bg-red-100 text-red-800' }
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -30,19 +49,61 @@ export default async function DashboardPage() {
   })
 
   const hasData = valuations && valuations.length > 0
+  const currentYear = new Date().getFullYear()
+  const companyName = profile?.company_name || 'Your Company'
+
+  // KPI trend data: compare Year 0 vs Year 1
+  const valTrend = valuations && valuations.length >= 2
+    ? pctChange(valuations[0]?.esop_valuation, valuations[1]?.esop_valuation) : null
+  const priceTrend = valuations && valuations.length >= 2
+    ? pctChange(valuations[0]?.price_per_share, valuations[1]?.price_per_share) : null
+  const popTrend = population && population.length >= 2
+    ? pctChange(population[0]?.active_participants, population[1]?.active_participants) : null
+
+  // Success score helpers
+  const latestScore = scores && scores.length > 0 ? scores[scores.length - 1] : null
+  const scoreVal = latestScore ? (latestScore.esop_success_score > 1 ? latestScore.esop_success_score / 100 : latestScore.esop_success_score) : null
+  const projectedScore = scores && scores.length >= 3 ? scores[scores.length - 1] : null
+  const health = scoreVal != null ? healthLabel(scoreVal) : null
+
+  // Settings completeness check
+  const settingsIncomplete = hasData && (!profile?.company_name || !profile?.discount_rate)
+
+  // Valuation snapshot rows: Year 1, Year 5, Year 10
+  const valSnapRows = [0, 4, 9].map(i => valuations?.[i]).filter(Boolean)
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        {profile?.last_updated_at && (
-          <p className="text-sm text-green-600 mt-1">
-            Last Updated: {new Date(profile.last_updated_at).toLocaleDateString('en-US', {
-              month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-            })}
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">ESOP Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {companyName} — Plan Year {currentYear}
           </p>
+          {profile?.last_updated_at && (
+            <p className="text-xs text-green-600 mt-1">
+              Last Updated: {new Date(profile.last_updated_at).toLocaleDateString('en-US', {
+                month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+              })}
+            </p>
+          )}
+        </div>
+        {hasData && (
+          <Link href="/report" className="inline-flex items-center gap-2 px-4 py-2 bg-[#1B2A4A] text-white text-sm font-medium rounded-lg hover:bg-[#2C3E6B] transition-colors">
+            <FileText className="h-4 w-4" />
+            Generate Report
+          </Link>
         )}
       </div>
+
+      {/* Alert banners */}
+      {settingsIncomplete && (
+        <Link href="/settings" className="flex items-center gap-2 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 hover:bg-yellow-100 transition-colors">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          Complete your plan settings for more accurate projections &rarr;
+        </Link>
+      )}
 
       {!hasData ? (
         <Card className="border-dashed">
@@ -50,147 +111,201 @@ export default async function DashboardPage() {
             <Upload className="h-12 w-12 text-gray-300 mb-4" />
             <h3 className="text-lg font-semibold text-gray-700 mb-2">No Data Uploaded Yet</h3>
             <p className="text-gray-500 mb-6 max-w-md">
-              Upload your ESOP Excel workbook to see projections, valuations, and analytics.
+              Upload your ESOP Excel workbook to see projections, valuations, and analytics across your dashboard.
             </p>
-            <a href="/import" className="inline-flex items-center px-4 py-2 bg-[#1B2A4A] text-white rounded-lg hover:bg-[#2C3E6B] transition-colors">
-              Import Excel Data
-            </a>
+            <div className="flex gap-3">
+              <Link href="/import" className="inline-flex items-center px-4 py-2 bg-[#1B2A4A] text-white rounded-lg hover:bg-[#2C3E6B] transition-colors">
+                Import Excel Data
+              </Link>
+              <Link href="/about" className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                Learn More
+              </Link>
+            </div>
           </CardContent>
         </Card>
       ) : (
         <>
-          <section aria-label="Key Metrics">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Link href="/valuation" className="block hover:ring-2 hover:ring-blue-200 rounded-lg transition-shadow">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <h3 className="text-sm font-medium text-gray-500">ESOP Valuation</h3>
-                    <DollarSign className="h-4 w-4 text-blue-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      ${valuations?.[0]?.esop_valuation?.toLocaleString('en-US', { maximumFractionDigits: 0 }) || '0'}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">Current year valuation</p>
-                  </CardContent>
-                </Card>
-              </Link>
+          {/* KPI Cards */}
+          <section aria-label="Key Metrics" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link href="/valuation" className="block hover:ring-2 hover:ring-blue-200 rounded-xl transition-shadow">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <h3 className="text-sm font-medium text-gray-500">ESOP Valuation</h3>
+                  <DollarSign className="h-4 w-4 text-blue-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{fmt(valuations?.[0]?.esop_valuation)}</div>
+                  <div className="flex items-center gap-1 mt-1">
+                    {valTrend ? (
+                      <>
+                        {valTrend.up ? <TrendingUp className="h-3 w-3 text-green-600" /> : <TrendingDown className="h-3 w-3 text-red-500" />}
+                        <span className={`text-xs font-medium ${valTrend.up ? 'text-green-600' : 'text-red-500'}`}>{valTrend.text}</span>
+                        <span className="text-xs text-gray-400 ml-1">vs Year 0</span>
+                      </>
+                    ) : <span className="text-xs text-gray-400">&mdash;</span>}
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
 
-              <Link href="/valuation" className="block hover:ring-2 hover:ring-blue-200 rounded-lg transition-shadow">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <h3 className="text-sm font-medium text-gray-500">Share Price</h3>
-                    <TrendingUp className="h-4 w-4 text-green-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      ${valuations?.[0]?.price_per_share?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0.00'}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">Per share value</p>
-                  </CardContent>
-                </Card>
-              </Link>
+            <Link href="/valuation" className="block hover:ring-2 hover:ring-blue-200 rounded-xl transition-shadow">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <h3 className="text-sm font-medium text-gray-500">Share Price</h3>
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    ${valuations?.[0]?.price_per_share?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0.00'}
+                  </div>
+                  <div className="flex items-center gap-1 mt-1">
+                    {priceTrend ? (
+                      <>
+                        {priceTrend.up ? <TrendingUp className="h-3 w-3 text-green-600" /> : <TrendingDown className="h-3 w-3 text-red-500" />}
+                        <span className={`text-xs font-medium ${priceTrend.up ? 'text-green-600' : 'text-red-500'}`}>{priceTrend.text}</span>
+                        <span className="text-xs text-gray-400 ml-1">vs Year 0</span>
+                      </>
+                    ) : <span className="text-xs text-gray-400">&mdash;</span>}
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
 
-              <Link href="/population" className="block hover:ring-2 hover:ring-blue-200 rounded-lg transition-shadow">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <h3 className="text-sm font-medium text-gray-500">Active Participants</h3>
-                    <Users className="h-4 w-4 text-purple-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {population?.[0]?.active_participants?.toLocaleString('en-US', { maximumFractionDigits: 0 }) || '0'}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">Current year participants</p>
-                  </CardContent>
-                </Card>
-              </Link>
+            <Link href="/population" className="block hover:ring-2 hover:ring-blue-200 rounded-xl transition-shadow">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <h3 className="text-sm font-medium text-gray-500">Active Participants</h3>
+                  <Users className="h-4 w-4 text-purple-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {population?.[0]?.active_participants?.toLocaleString('en-US', { maximumFractionDigits: 0 }) || '0'}
+                  </div>
+                  <div className="flex items-center gap-1 mt-1">
+                    {popTrend ? (
+                      <>
+                        {popTrend.up ? <TrendingUp className="h-3 w-3 text-green-600" /> : <TrendingDown className="h-3 w-3 text-red-500" />}
+                        <span className={`text-xs font-medium ${popTrend.up ? 'text-green-600' : 'text-red-500'}`}>{popTrend.text}</span>
+                        <span className="text-xs text-gray-400 ml-1">vs Year 0</span>
+                      </>
+                    ) : <span className="text-xs text-gray-400">&mdash;</span>}
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
 
-              <Link href="/success-score" className="block hover:ring-2 hover:ring-blue-200 rounded-lg transition-shadow">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <h3 className="text-sm font-medium text-gray-500">Success Score</h3>
-                    <Award className="h-4 w-4 text-amber-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {scores && scores.length > 0
-                        ? (() => {
-                            const latest = scores[scores.length - 1]
-                            const val = latest.esop_success_score
-                            const pct = val > 1 ? val : val * 100
-                            return `${pct.toFixed(1)}%`
-                          })()
-                        : 'N/A'}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {scores && scores.length > 0 ? `Year ${scores[scores.length - 1].year_for_payout}` : 'ESOP sustainability rating'}
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
-            </div>
+            <Link href="/success-score" className="block hover:ring-2 hover:ring-blue-200 rounded-xl transition-shadow">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <h3 className="text-sm font-medium text-gray-500">Success Score</h3>
+                  <Award className="h-4 w-4 text-amber-500" />
+                </CardHeader>
+                <CardContent>
+                  {scoreVal != null && health ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold">{scoreVal.toFixed(2)} / 1.0</span>
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${health.color}`}>{health.label}</span>
+                      </div>
+                      {projectedScore && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Projected to {(projectedScore.esop_success_score > 1 ? projectedScore.esop_success_score / 100 : projectedScore.esop_success_score).toFixed(2)} by Year {projectedScore.year_for_payout}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">N/A</div>
+                      <p className="text-xs text-gray-400 mt-1">ESOP sustainability rating</p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </Link>
           </section>
 
-          <section aria-label="Data Tables">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <h3 className="text-lg font-semibold">Repurchase Obligation Projection</h3>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <caption className="sr-only">Repurchase obligation projection by year</caption>
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2 font-medium text-gray-500">Year</th>
-                          <th className="text-right py-2 font-medium text-gray-500">Total RO</th>
-                          <th className="text-right py-2 font-medium text-gray-500">NPV</th>
+          {/* Tables */}
+          <section aria-label="Data Tables" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* RO Projection Table */}
+            <Card>
+              <CardHeader>
+                <h3 className="text-lg font-semibold">Repurchase Obligation Projection</h3>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <caption className="sr-only">Repurchase obligation projection by year</caption>
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 font-medium text-gray-500">Year</th>
+                        <th className="text-right py-2 font-medium text-gray-500">Total RO</th>
+                        <th className="text-right py-2 font-medium text-gray-500">NPV</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {repurchase?.slice(0, 5).map((row) => (
+                        <tr key={row.year} className="border-b last:border-0">
+                          <td className="py-2">{row.year}</td>
+                          <td className="text-right py-2">{fmt(row.total_repurchase_obligation)}</td>
+                          <td className="text-right py-2">{fmt(row.npv)}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {repurchase?.slice(0, 5).map((row) => (
-                          <tr key={row.year} className="border-b last:border-0">
-                            <td className="py-2">{row.year}</td>
-                            <td className="text-right py-2">${row.total_repurchase_obligation?.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
-                            <td className="text-right py-2">${row.npv?.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <Link href="/repurchase" className="inline-block text-sm font-medium text-blue-600 hover:text-blue-800">
+                  View Full Projection &rarr;
+                </Link>
+              </CardContent>
+            </Card>
 
-              <Card>
-                <CardHeader>
-                  <h3 className="text-lg font-semibold">Valuation &amp; Share Price</h3>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <caption className="sr-only">Valuation and share price by year</caption>
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2 font-medium text-gray-500">Year</th>
-                          <th className="text-right py-2 font-medium text-gray-500">ESOP Value</th>
-                          <th className="text-right py-2 font-medium text-gray-500">Price/Share</th>
+            {/* Valuation Summary Card */}
+            <Card>
+              <CardHeader>
+                <h3 className="text-lg font-semibold">Valuation Snapshot</h3>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <caption className="sr-only">Valuation snapshot</caption>
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 font-medium text-gray-500">Year</th>
+                        <th className="text-right py-2 font-medium text-gray-500">ESOP Value</th>
+                        <th className="text-right py-2 font-medium text-gray-500">Price/Share</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {valSnapRows.map((row) => (
+                        <tr key={row.year} className="border-b last:border-0">
+                          <td className="py-2">{row.year}</td>
+                          <td className="text-right py-2">{fmt(row.esop_valuation)}</td>
+                          <td className="text-right py-2">${row.price_per_share?.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {valuations?.slice(0, 5).map((row) => (
-                          <tr key={row.year} className="border-b last:border-0">
-                            <td className="py-2">{row.year}</td>
-                            <td className="text-right py-2">${row.esop_valuation?.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
-                            <td className="text-right py-2">${row.price_per_share?.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <Link href="/valuation" className="inline-block text-sm font-medium text-blue-600 hover:text-blue-800">
+                  View Full Analysis &rarr;
+                </Link>
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* Quick Actions */}
+          <section aria-label="Quick Actions">
+            <h3 className="text-sm font-medium text-gray-500 mb-3">Quick Actions</h3>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/report" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                <FileText className="h-4 w-4" /> Generate Report
+              </Link>
+              <Link href="/projections" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                <BarChart3 className="h-4 w-4" /> Run Population Projection
+              </Link>
+              <Link href="/population" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                <UsersRound className="h-4 w-4" /> View All Participants
+              </Link>
             </div>
           </section>
         </>

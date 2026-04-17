@@ -17,7 +17,9 @@ export default function ImportPage() {
   const [uploadMessage, setUploadMessage] = useState('')
   const [fileName, setFileName] = useState('')
   const [uploadResult, setUploadResult] = useState<UploadResult>(null)
+  const [dragging, setDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const dropZoneRef = useRef<HTMLDivElement>(null)
 
   // Section 2: Sync from URL
   const [syncUrl, setSyncUrl] = useState('')
@@ -28,6 +30,39 @@ export default function ImportPage() {
   const [popChange, setPopChange] = useState<string>('')
   const [popStatus, setPopStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [popMessage, setPopMessage] = useState('')
+
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragging(true)
+  }
+
+  function handleDragLeave(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragging(false)
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragging(false)
+
+    const files = e.dataTransfer.files
+    if (files.length > 0 && fileInputRef.current) {
+      // Assign dropped files to the file input so handleFileUpload picks them up
+      const dt = new DataTransfer()
+      dt.items.add(files[0])
+      fileInputRef.current.files = dt.files
+      // Reset state for fresh upload
+      setUploadStatus('idle')
+      setUploadMessage('')
+      setUploadProgress(0)
+      setUploadResult(null)
+      // Auto-trigger upload
+      handleFileUpload()
+    }
+  }
 
   async function handleFileUpload() {
     const file = fileInputRef.current?.files?.[0]
@@ -175,17 +210,29 @@ export default function ImportPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
+            {/* Drag-and-drop zone */}
+            <div
+              ref={dropZoneRef}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
+                dragging
+                  ? 'border-blue-500 bg-blue-50/70'
+                  : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50/50'
+              }`}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              </svg>
+              <p className="text-lg font-medium text-gray-700">Drop your .xlsx file here</p>
+              <p className="text-sm text-gray-500 mt-1">or click to browse</p>
               <input
                 ref={fileInputRef}
                 type="file"
                 accept=".xlsx"
-                className="block w-full text-sm text-muted-foreground
-                  file:mr-4 file:rounded-md file:border-0
-                  file:bg-primary file:px-4 file:py-2
-                  file:text-sm file:font-medium file:text-primary-foreground
-                  file:cursor-pointer hover:file:bg-primary/90
-                  file:transition-colors"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 onChange={() => {
                   setUploadStatus('idle')
                   setUploadMessage('')
@@ -193,6 +240,7 @@ export default function ImportPage() {
                   setUploadResult(null)
                 }}
               />
+              <p className="text-xs text-gray-400 mt-3">Supported: ESOP workbooks with all tabs. Max 50 MB.</p>
             </div>
 
             <button

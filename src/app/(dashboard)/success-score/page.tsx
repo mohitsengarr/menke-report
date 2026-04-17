@@ -10,7 +10,14 @@ function getHealthLabel(score: number) {
   // Score is 0.0-1.0 scale
   if (score >= 0.8) return { label: 'Strong', color: 'bg-green-100 text-green-800 border-green-300' }
   if (score >= 0.5) return { label: 'Moderate', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' }
-  return { label: 'Impaired', color: 'bg-red-100 text-red-800 border-red-300' }
+  return { label: 'At Risk', color: 'bg-red-100 text-red-800 border-red-300' }
+}
+
+function getCashBurnColor(burn: number) {
+  // burn is a ratio: <0.5 green, 0.5-1.0 yellow, >1.0 red
+  if (burn < 0.5) return 'text-green-700'
+  if (burn <= 1.0) return 'text-yellow-700'
+  return 'text-red-700'
 }
 
 export const metadata = { title: 'ESOP Success Score' }
@@ -47,8 +54,10 @@ export default async function SuccessScorePage() {
     )
   }
 
-  const latest = rows[rows.length - 1]
-  const health = getHealthLabel(latest.esop_success_score)
+  const current = rows[0]
+  const projected = rows[rows.length - 1]
+  const currentHealth = getHealthLabel(current.esop_success_score)
+  const projectedHealth = getHealthLabel(projected.esop_success_score)
 
   const chartData = rows.map((r) => ({
     year: r.year_for_payout,
@@ -57,18 +66,32 @@ export default async function SuccessScorePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">ESOP Success Score</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">ESOP Success Score</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          How sustainable is this ESOP plan? The Success Score measures cash sources against repurchase obligations over 10 years.
+        </p>
+      </div>
 
       <Card>
         <CardHeader><CardTitle>Health Indicator</CardTitle></CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4">
-            <div className={`px-4 py-2 rounded-lg border font-semibold text-lg ${health.color}`}>
-              {health.label}
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-500 w-36">Current ({current.year_for_payout}):</span>
+              <span className="font-bold text-gray-900">{current.esop_success_score.toFixed(2)} / 1.0</span>
+              <span className="text-gray-400">--</span>
+              <span className={`px-2.5 py-0.5 rounded-full border text-xs font-semibold ${currentHealth.color}`}>
+                {currentHealth.label}
+              </span>
             </div>
-            <div className="text-gray-600">
-              Latest Score: <span className="font-bold text-gray-900">{(latest.esop_success_score > 1 ? latest.esop_success_score : latest.esop_success_score * 100).toFixed(1)}%</span>
-              <span className="text-sm ml-2">({latest.year_for_payout})</span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-500 w-36">10-Year Projection ({projected.year_for_payout}):</span>
+              <span className="font-bold text-gray-900">{projected.esop_success_score.toFixed(2)} / 1.0</span>
+              <span className="text-gray-400">--</span>
+              <span className={`px-2.5 py-0.5 rounded-full border text-xs font-semibold ${projectedHealth.color}`}>
+                {projectedHealth.label}
+              </span>
             </div>
           </div>
         </CardContent>
@@ -97,9 +120,13 @@ export default async function SuccessScorePage() {
                     <td className="py-2 pr-4 text-right">{fmtDollar(r.repurchase_obligation)}</td>
                     <td className="py-2 pr-4 text-right">{fmtDollar(r.cash_source)}</td>
                     <td className="py-2 pr-4 text-right">{fmtDollar(r.surplus_or_deficit)}</td>
-                    <td className="py-2 pr-4 text-right">{(r.ro_cash_burn * 100).toFixed(1)}%</td>
+                    <td className={`py-2 pr-4 text-right font-medium ${getCashBurnColor(r.ro_cash_burn)}`}>{(r.ro_cash_burn * 100).toFixed(1)}%</td>
                     <td className="py-2 pr-4 text-right font-semibold">{(r.esop_success_score > 1 ? r.esop_success_score : r.esop_success_score * 100).toFixed(1)}%</td>
-                    <td className="py-2 text-right">{r.health_check}</td>
+                    <td className="py-2 text-right">
+                      <span className={`px-2 py-0.5 rounded-full border text-xs font-semibold ${getHealthLabel(r.health_check).color}`}>
+                        {getHealthLabel(r.health_check).label}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -116,6 +143,7 @@ export default async function SuccessScorePage() {
             xKey="year"
             lines={[{ key: 'score', color: '#27AE60', name: 'ESOP Success Score' }]}
             height={350}
+            formatType="percent"
           />
         </CardContent>
       </Card>
