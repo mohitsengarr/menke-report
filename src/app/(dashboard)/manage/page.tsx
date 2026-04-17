@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { InputData } from '@/lib/types/database'
 import { ParticipantSearch } from './participant-search'
+import { ManageActions } from './manage-actions'
 
 export const metadata = { title: 'Data Management' }
 
@@ -22,7 +23,10 @@ export default async function ManagePage() {
   if (rows.length === 0) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Data Management</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">Data Management</h1>
+        </div>
+        <ManageActions userId={user.user.id} />
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-gray-500 mb-4">No data available. Please upload your Excel data.</p>
@@ -35,7 +39,10 @@ export default async function ManagePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Data Management</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Data Management</h1>
+      </div>
+      <ManageActions userId={user.user.id} />
 
       <Card>
         <CardHeader>

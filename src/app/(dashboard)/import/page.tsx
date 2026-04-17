@@ -21,6 +21,12 @@ export default function ImportPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
 
+  // Section 1b: Single-Tab Upload
+  const [singleFile, setSingleFile] = useState<File | null>(null)
+  const [singleFileName, setSingleFileName] = useState('')
+  const [singleStatus, setSingleStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle')
+  const [singleMessage, setSingleMessage] = useState('')
+
   // Section 2: Sync from URL
   const [syncUrl, setSyncUrl] = useState('')
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle')
@@ -30,6 +36,32 @@ export default function ImportPage() {
   const [popChange, setPopChange] = useState<string>('')
   const [popStatus, setPopStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [popMessage, setPopMessage] = useState('')
+
+  async function handleSingleUpload() {
+    if (!singleFile) return
+    setSingleStatus('uploading')
+    setSingleMessage('')
+
+    const formData = new FormData()
+    formData.append('file', singleFile)
+    formData.append('type', 'single')
+
+    try {
+      const res = await fetch('/api/excel/upload', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (data.success) {
+        setSingleStatus('success')
+        setSingleMessage(data.message || 'Single-tab data uploaded successfully.')
+      } else {
+        setSingleStatus('error')
+        setSingleMessage(data.message || 'Upload failed.')
+      }
+    } catch {
+      setSingleStatus('error')
+      setSingleMessage('Upload failed. Please try again.')
+    }
+    setSingleFile(null)
+  }
 
   function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault()
@@ -184,11 +216,8 @@ export default function ImportPage() {
     setPopStatus('idle')
     setPopMessage('')
 
-    // TODO: Phase 3 - Implement population change update via API
-    setTimeout(() => {
-      setPopStatus('success')
-      setPopMessage(`Population change set to ${value}%. Update processing coming soon.`)
-    }, 500)
+    // Navigate to the projection calculator with the population change value
+    window.location.href = `/population/projection?change=${value}`
   }
 
   return (
@@ -317,6 +346,44 @@ export default function ImportPage() {
         </CardContent>
       </Card>
 
+      {/* Section 2: Single-Tab Upload */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Upload Single-Tab Excel</CardTitle>
+          <CardDescription>
+            Upload an Excel file with just the participant census data (one worksheet).
+            This updates participant records without changing plan settings or projections.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <input
+              type="file"
+              accept=".xlsx"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                setSingleFileName(file.name)
+                setSingleFile(file)
+              }}
+              className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+            />
+            <button
+              onClick={handleSingleUpload}
+              disabled={!singleFile || singleStatus === 'uploading'}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              {singleStatus === 'uploading' ? 'Uploading...' : 'Upload'}
+            </button>
+          </div>
+          {singleMessage && (
+            <p className={`mt-3 text-sm ${singleStatus === 'success' ? 'text-green-600' : singleStatus === 'error' ? 'text-red-600' : 'text-gray-600'}`}>
+              {singleMessage}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Advanced Options Accordion */}
       <details className="group">
         <summary className="cursor-pointer list-none flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors py-2">
@@ -432,7 +499,17 @@ export default function ImportPage() {
                     </svg>
                     Update
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => window.location.href = '/population/projection'}
+                    className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent transition-colors"
+                  >
+                    Open Projection Calculator
+                  </button>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Use the Population Projection page to model growth/decline scenarios and see 10-year projections.
+                </p>
 
                 {popStatus === 'success' && (
                   <div className="flex items-center gap-2 rounded-md bg-green-50 px-3 py-2 text-sm text-green-800 dark:bg-green-950/30 dark:text-green-400">
