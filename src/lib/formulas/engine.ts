@@ -17,6 +17,11 @@ import {
   lookupRMDLifeExpectancy,
   lookupTurnover,
 } from './actuarial-tables'
+import {
+  resolveFormulaConfig,
+  type ResolvedConfig,
+  type FormulaConfigOverride,
+} from './config'
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -297,17 +302,25 @@ export function calcSeparationDate(
  * Vesting percentage (Excel col DN):
  * Depends on vesting schedule (1-year cliff, 3-year cliff, 6-year graded).
  */
-export function calcVestingPct(vestingPeriod: number, yearsOfService: number): number {
+export function calcVestingPct(
+  vestingPeriod: number,
+  yearsOfService: number,
+  config?: ResolvedConfig
+): number {
   if (yearsOfService < 0) return 0
-  if (vestingPeriod === 1) return yearsOfService >= 1 ? 1.0 : 0
-  if (vestingPeriod === 3) return yearsOfService >= 3 ? 1.0 : 0
-  // 6-year graded vesting
-  if (yearsOfService < 2) return 0
-  if (yearsOfService < 3) return 0.20
-  if (yearsOfService < 4) return 0.40
-  if (yearsOfService < 5) return 0.60
-  if (yearsOfService < 6) return 0.80
-  return 1.0
+  const oneYr = Number(config?.['vesting.1yr_cliff_threshold'] ?? 1)
+  const threeYr = Number(config?.['vesting.3yr_cliff_threshold'] ?? 3)
+  const gradedStart = Number(config?.['vesting.6yr_graded_start'] ?? 2)
+  const gradedStep = Number(config?.['vesting.6yr_graded_step'] ?? 0.20)
+  const gradedFullYear = Number(config?.['vesting.6yr_graded_full_year'] ?? 6)
+
+  if (vestingPeriod === 1) return yearsOfService >= oneYr ? 1.0 : 0
+  if (vestingPeriod === 3) return yearsOfService >= threeYr ? 1.0 : 0
+  // Graded vesting: zero until gradedStart; +gradedStep per year; 100% at gradedFullYear.
+  if (yearsOfService < gradedStart) return 0
+  if (yearsOfService >= gradedFullYear) return 1.0
+  const pct = (Math.floor(yearsOfService) - gradedStart + 1) * gradedStep
+  return Math.min(1.0, Math.max(0, pct))
 }
 
 /**
@@ -401,10 +414,12 @@ export function calcEarlyRetirementDist(
   shares: number,
   diversYears: number[],
   diversThreshold: number,
-  yearInDiversWindow: number
+  yearInDiversWindow: number,
+  config?: ResolvedConfig
 ): number {
+  const serviceReq = Number(config?.['age.diversification_service_requirement'] ?? 10)
   if (!isActive) return 0
-  if (age < diversThreshold || yearsOfService < 10) return 0
+  if (age < diversThreshold || yearsOfService < serviceReq) return 0
   if (yearInDiversWindow < 0 || yearInDiversWindow >= diversYears.length) return 0
   const pct = diversYears[yearInDiversWindow]!
   return -(shares * pct)
@@ -431,8 +446,13 @@ export function calcDeathBenefitDist(
  * Once a participant reaches age 72, they must take distributions
  * based on the IRS Uniform Lifetime Table divisor.
  */
-export function calcRMDShareDist(age: number, shareBalance: number): number {
-  if (age < 72 || shareBalance <= 0) return 0
+export function calcRMDShareDist(
+  age: number,
+  shareBalance: number,
+  config?: ResolvedConfig
+): number {
+  const rmdStart = Number(config?.['age.rmd_start'] ?? 72)
+  if (age < rmdStart || shareBalance <= 0) return 0
   const lifeExp = lookupRMDLifeExpectancy(age)
   if (lifeExp <= 0) return 0
   return -(shareBalance / lifeExp)
@@ -496,15 +516,17 @@ export function runFormulaEngine(
   participants: ParticipantInput[],
   settings: PlanSettings,
   valuationDate: Date,
-  sharePrices: number[]
+  sharePrices: number[],
+  configOverrides: FormulaConfigOverride[] = []
 ): FormulaEngineOutput {
-  const YEARS = 11 // Year 0 through Year 10
+  const config = resolveFormulaConfig(configOverrides)
+  const YEARS = Number(config['plan.projection_years']) // Year 0 through Year N-1
   const isPlanFrozen = settings.planActiveFrozen === 'FROZEN'
 
   // ─── Phase 1: Compute per-participant projections ───
 
   const computed: ParticipantComputed[] = participants.map(p =>
-    computeParticipant(p, settings, valuationDate, sharePrices, YEARS, isPlanFrozen)
+    computeParticipant(p, settings, valuationDate, sharePrices, YEARS, isPlanFrozen, config)
   )
 
   // For allocation, we need total covered comp per year (sum of active participants).
@@ -553,7 +575,7 @@ export function runFormulaEngine(
     computed, settings, valuationDate, sharePrices, YEARS
   )
   const repurchaseObligations = buildRepurchaseObligations(
-    computed, settings, valuationDate, sharePrices, YEARS
+    computed, settings, valuationDate, sharePrices, YEARS, config
   )
   const shareTurnover = buildShareTurnover(
     computed, valuationDate, sharePrices, YEARS
@@ -562,7 +584,7 @@ export function runFormulaEngine(
     computed, settings, valuationDate, sharePrices, YEARS
   )
   const successScores = buildSuccessScores(
-    repurchaseObligations, settings
+    repurchaseObligations, settings, config
   )
   const ageTenureActive = buildAgeTenureSummary(computed, true)
   const ageTenureTerminated = buildAgeTenureSummary(computed, false)
@@ -589,7 +611,8 @@ function computeParticipant(
   valuationDate: Date,
   sharePrices: number[],
   numYears: number,
-  isPlanFrozen: boolean
+  isPlanFrozen: boolean,
+  config: ResolvedConfig
 ): ParticipantComputed {
   const birthDate = parseDate(p.birth_date)
   const hireDate = parseDate(p.hire_date)
@@ -629,7 +652,7 @@ function computeParticipant(
     // Determine active status for this projection year
     const activeThisYear = isActive && (!separationDate || refDate < separationDate)
 
-    const vestPct = calcVestingPct(s.vestingPeriod, yos)
+    const vestPct = calcVestingPct(s.vestingPeriod, yos, config)
     const price = sharePrices[yr] ?? sharePrices[sharePrices.length - 1]!
 
     // Projected compensation
@@ -663,7 +686,7 @@ function computeParticipant(
 
     const earlyRetirementDist = calcEarlyRetirementDist(
       activeThisYear, currentAge, yos, carryShares,
-      s.diversYears, diversEligAge, yearInDiversWindow
+      s.diversYears, diversEligAge, yearInDiversWindow, config
     )
 
     // Death benefit
@@ -672,7 +695,7 @@ function computeParticipant(
     )
 
     // RMD for age 72+
-    const rmdShareDist = calcRMDShareDist(currentAge, carryShares)
+    const rmdShareDist = calcRMDShareDist(currentAge, carryShares, config)
 
     // In-service catch-all
     const catchAllDist = calcInServiceDist(
@@ -835,10 +858,11 @@ function buildRepurchaseObligations(
   settings: PlanSettings,
   valuationDate: Date,
   sharePrices: number[],
-  numYears: number
+  numYears: number,
+  config?: ResolvedConfig
 ): RepurchaseObligationRow[] {
   const rows: RepurchaseObligationRow[] = []
-  const discountRate = 0.05 // standard RO discount rate
+  const discountRate = Number(config?.['val.npv_discount_rate'] ?? 0.05)
 
   for (let yr = 0; yr < numYears; yr++) {
     const price = sharePrices[yr] ?? sharePrices[sharePrices.length - 1]!
@@ -1008,8 +1032,26 @@ function buildPopulationAnalysis(
  */
 function buildSuccessScores(
   roRows: RepurchaseObligationRow[],
-  settings: PlanSettings
+  settings: PlanSettings,
+  config?: ResolvedConfig
 ): SuccessScoreRow[] {
+  const thrExcellent = Number(config?.['score.threshold_excellent'] ?? 0.25)
+  const thrGood = Number(config?.['score.threshold_good'] ?? 0.50)
+  const thrCaution = Number(config?.['score.threshold_caution'] ?? 0.75)
+  const thrConcern = Number(config?.['score.threshold_concern'] ?? 1.00)
+  const thrDeficit = Number(config?.['score.threshold_deficit'] ?? 1.50)
+  const valExcellent = Number(config?.['score.value_excellent'] ?? 0.95)
+  const valGood = Number(config?.['score.value_good'] ?? 0.85)
+  const valCaution = Number(config?.['score.value_caution'] ?? 0.70)
+  const valConcern = Number(config?.['score.value_concern'] ?? 0.55)
+  const valDeficit = Number(config?.['score.value_deficit'] ?? 0.35)
+  const valCritical = Number(config?.['score.value_critical'] ?? 0.15)
+  const valIdeal = Number(config?.['score.value_ideal'] ?? 0.99)
+  const healthYellowPct = Number(config?.['score.health_yellow_pct'] ?? 0.25)
+  const healthGreen = Number(config?.['score.health_value_green'] ?? 1.0)
+  const healthYellow = Number(config?.['score.health_value_yellow'] ?? 0.6)
+  const healthRed = Number(config?.['score.health_value_red'] ?? 0.2)
+
   return roRows.map((ro, idx) => {
     // Cash source = EBITDA-based annual contribution (dollar amount)
     // annualESOPContribution is a rate (e.g., 0.05 = 5%), multiply by projected EBITDA
@@ -1024,19 +1066,19 @@ function buildSuccessScores(
     // Success score: 0.0 to 1.0 scale (displayed as percentage on dashboard)
     // Based on cash burn ratio — lower burn = higher score
     let score: number
-    if (cashBurn <= 0) score = 0.99   // No obligations or no cash source
-    else if (cashBurn < 0.25) score = 0.95
-    else if (cashBurn < 0.50) score = 0.85
-    else if (cashBurn < 0.75) score = 0.70
-    else if (cashBurn < 1.00) score = 0.55
-    else if (cashBurn < 1.50) score = 0.35
-    else score = 0.15
+    if (cashBurn <= 0) score = valIdeal
+    else if (cashBurn < thrExcellent) score = valExcellent
+    else if (cashBurn < thrGood) score = valGood
+    else if (cashBurn < thrCaution) score = valCaution
+    else if (cashBurn < thrConcern) score = valConcern
+    else if (cashBurn < thrDeficit) score = valDeficit
+    else score = valCritical
 
     // Health check: 0.0-1.0 scale (displayed as percentage)
     let health: number
-    if (surplus >= 0) health = 1.0                        // Green: surplus
-    else if (surplus >= -cashSource * 0.25) health = 0.6  // Yellow: slight deficit
-    else health = 0.2                                     // Red: major deficit
+    if (surplus >= 0) health = healthGreen                                   // Green: surplus
+    else if (surplus >= -cashSource * healthYellowPct) health = healthYellow // Yellow: slight deficit
+    else health = healthRed                                                  // Red: major deficit
 
     const takeaway = health >= 0.8
       ? 'Sustainable - cash sources exceed obligations'

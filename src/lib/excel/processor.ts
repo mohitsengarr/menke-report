@@ -153,7 +153,20 @@ export async function processExcelWorkbook(userId: string, fileBuffer: Buffer) {
   }
 
   const planYearEnd = funding.plan_year_end ? new Date(funding.plan_year_end) : new Date()
-  const engineOutput = runFormulaEngine(engineParticipants, engineSettings, planYearEnd, sharePrices)
+
+  // Load any admin-tuned formula config overrides for this user
+  const { data: configOverrides } = await supabase
+    .from('formula_configs')
+    .select('config_key, value_number, value_text, value_json')
+    .eq('user_id', userId)
+
+  const engineOutput = runFormulaEngine(
+    engineParticipants,
+    engineSettings,
+    planYearEnd,
+    sharePrices,
+    (configOverrides ?? []) as any
+  )
 
   // Map engine output to database format
   // Map engine output property names to local variables

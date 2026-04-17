@@ -1,4 +1,7 @@
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { FORMULA_CONFIG_REGISTRY, CONFIG_CATEGORIES } from '@/lib/formulas/config'
 
 /* ------------------------------------------------------------------ */
 /*  Data: Pipeline Steps                                               */
@@ -539,7 +542,23 @@ const engineStats = [
 
 export const metadata = { title: 'Formula Engine' }
 
-export default function FormulasPage() {
+export default async function FormulasPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  let isAdmin = false
+  let overrideCount = 0
+  if (user) {
+    const [{ data: profile }, { count }] = await Promise.all([
+      supabase.from('profiles').select('role').eq('id', user.id).single(),
+      supabase
+        .from('formula_configs')
+        .select('config_key', { count: 'exact', head: true })
+        .eq('user_id', user.id),
+    ])
+    isAdmin = profile?.role === 'admin'
+    overrideCount = count ?? 0
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-12 pb-12">
       {/* ---- Header ---- */}
@@ -551,7 +570,55 @@ export default function FormulasPage() {
         <p className="text-sm text-gray-400 uppercase tracking-widest">
           Menke &amp; Associates Repurchase Obligation Engine
         </p>
+        {isAdmin && (
+          <div className="inline-flex items-center gap-3 pt-2">
+            <Link
+              href="/formulas/edit"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-menke-navy text-white rounded-md hover:bg-menke-navy-light transition-colors"
+            >
+              Edit Formula Parameters
+              <span className="text-xs opacity-80">({FORMULA_CONFIG_REGISTRY.length} tunable)</span>
+            </Link>
+            {overrideCount > 0 && (
+              <span className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">
+                {overrideCount} customized
+              </span>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* ---- Admin quick-jump bar ---- */}
+      {isAdmin && (
+        <section className="space-y-3 border border-gray-200 rounded-lg p-5 bg-gray-50/60">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h2 className="text-lg font-semibold text-menke-navy">Admin: Tunable Parameters</h2>
+            <Link
+              href="/formulas/edit"
+              className="text-sm text-menke-navy hover:underline"
+            >
+              Open editor &rarr;
+            </Link>
+          </div>
+          <p className="text-sm text-gray-600">
+            The calculation engine exposes {FORMULA_CONFIG_REGISTRY.length} admin-editable parameters
+            (thresholds, growth rates, age limits, distribution percentages, score tiers). Each
+            parameter ships with a safe default and can be overridden per account. All changes are
+            logged to the audit table.
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+            {CONFIG_CATEGORIES.map(c => {
+              const n = FORMULA_CONFIG_REGISTRY.filter(d => d.category === c.id).length
+              return (
+                <div key={c.id} className="flex items-baseline justify-between text-xs text-gray-700 bg-white border border-gray-200 rounded-md px-3 py-2">
+                  <span>{c.label}</span>
+                  <span className="font-mono font-semibold text-menke-navy">{n}</span>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ---- Engine Stats Cards ---- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

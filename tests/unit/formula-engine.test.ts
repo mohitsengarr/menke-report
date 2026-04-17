@@ -332,7 +332,7 @@ describe('calcVestingPct', () => {
     })
 
     it('4 years = 60%', () => {
-      expect(calcVestingPct(6, 4)).toBe(0.60)
+      expect(calcVestingPct(6, 4)).toBeCloseTo(0.60, 10)
     })
 
     it('5 years = 80%', () => {
@@ -1126,13 +1126,13 @@ describe('edge cases and cross-function consistency', () => {
 
   it('calcVestingPct: 6-year graded boundary values at exact integer years', () => {
     // Verify each integer boundary for 6-year graded schedule
-    expect(calcVestingPct(6, 1)).toBe(0)      // 1 year: still 0
-    expect(calcVestingPct(6, 2)).toBe(0.20)    // 2 years: 20%
-    expect(calcVestingPct(6, 3)).toBe(0.40)    // 3 years: 40%
-    expect(calcVestingPct(6, 4)).toBe(0.60)    // 4 years: 60%
-    expect(calcVestingPct(6, 5)).toBe(0.80)    // 5 years: 80%
-    expect(calcVestingPct(6, 6)).toBe(1.0)     // 6 years: 100%
-    expect(calcVestingPct(6, 7)).toBe(1.0)     // 7 years: still 100%
+    expect(calcVestingPct(6, 1)).toBe(0)                   // 1 year: still 0
+    expect(calcVestingPct(6, 2)).toBeCloseTo(0.20, 10)     // 2 years: 20%
+    expect(calcVestingPct(6, 3)).toBeCloseTo(0.40, 10)     // 3 years: 40%
+    expect(calcVestingPct(6, 4)).toBeCloseTo(0.60, 10)     // 4 years: 60%
+    expect(calcVestingPct(6, 5)).toBeCloseTo(0.80, 10)     // 5 years: 80%
+    expect(calcVestingPct(6, 6)).toBe(1.0)                 // 6 years: 100%
+    expect(calcVestingPct(6, 7)).toBe(1.0)                 // 7 years: still 100%
   })
 
   it('runFormulaEngine: ageTenure summary groups are populated for active participants', () => {
