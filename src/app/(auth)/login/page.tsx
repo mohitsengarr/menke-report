@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { motion } from 'framer-motion'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -35,12 +36,27 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="w-full max-w-md px-4">
-      <div className="text-center mb-8">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      className="w-full max-w-md px-4"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+        className="text-center mb-8"
+      >
         <h1 className="text-3xl font-bold text-[#1B2A4A]">MENKE</h1>
         <p className="text-sm text-gray-500 tracking-widest">ESOP ADVISORS SINCE 1974</p>
-      </div>
+      </motion.div>
 
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
       <Card>
         <CardHeader>
           <CardTitle>Welcome back</CardTitle>
@@ -88,10 +104,11 @@ export default function LoginPage() {
           </CardFooter>
         </form>
       </Card>
+      </motion.div>
 
       <p className="text-center text-xs text-gray-400 mt-6">
         &copy; {new Date().getFullYear()} Menke &amp; Associates. All rights reserved.
       </p>
-    </div>
+    </motion.div>
   )
 }

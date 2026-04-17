@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { motion } from 'framer-motion'
 import {
   LayoutDashboard, TrendingUp, Users, Award, Settings,
   Upload, Database, History, Info, FileText, UserCircle, Calculator
@@ -51,7 +52,14 @@ export function Sidebar({ profile }: { profile: Profile | null }) {
         id="mobile-sidebar"
         className="fixed left-0 top-16 bottom-0 w-64 bg-white border-r border-gray-200 overflow-y-auto z-40 transition-transform duration-200 -translate-x-full md:translate-x-0"
       >
-        <nav className="p-4 space-y-1">
+        <motion.nav
+          className="p-4 space-y-1"
+          initial="initial"
+          animate="animate"
+          variants={{
+            animate: { transition: { staggerChildren: 0.05, delayChildren: 0.1 } }
+          }}
+        >
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
@@ -63,7 +71,13 @@ export function Sidebar({ profile }: { profile: Profile | null }) {
             }
 
             return (
-              <div key={item.href}>
+              <motion.div
+                key={item.href}
+                variants={{
+                  initial: { opacity: 0, x: -15 },
+                  animate: { opacity: 1, x: 0, transition: { duration: 0.3 } }
+                }}
+              >
                 <Link
                   href={item.href}
                   onClick={closeMobileSidebar}
@@ -96,7 +110,7 @@ export function Sidebar({ profile }: { profile: Profile | null }) {
                     ))}
                   </div>
                 )}
-              </div>
+              </motion.div>
             )
           })}
 
@@ -124,7 +138,7 @@ export function Sidebar({ profile }: { profile: Profile | null }) {
               </Link>
             </>
           )}
-        </nav>
+        </motion.nav>
       </aside>
     </>
   )

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
+import { PageWrapper } from '@/components/motion/page-wrapper'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -23,7 +24,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="flex">
         <Sidebar profile={profile} />
         <main className="flex-1 p-6 md:ml-64 mt-16">
-          {children}
+          <PageWrapper>
+            {children}
+          </PageWrapper>
         </main>
       </div>
     </div>
