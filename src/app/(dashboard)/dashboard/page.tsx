@@ -82,22 +82,27 @@ export default async function DashboardPage() {
   const retirePct = driverTotal > 0 ? ((totalRetire / driverTotal) * 100).toFixed(1) : '0.0'
   const turnoverPct = driverTotal > 0 ? ((totalTurnoverShares / driverTotal) * 100).toFixed(1) : '0.0'
 
-  // Population & Compensation: latest year metrics
-  const latestPop = population && population.length > 0 ? population[population.length - 1] : null
-  const activeParticipants = latestPop?.active_participants?.toLocaleString('en-US', { maximumFractionDigits: 0 }) ?? '0'
-  const avgTotalComp = latestPop?.avg_total_compensation
-    ? Math.round(Number(latestPop.avg_total_compensation)).toLocaleString('en-US')
+  // SEN-191, SEN-193: Population & Compensation reads Year 0 for consistency with the top KPI card.
+  // Using the latest (Year 10) row caused active count drift and zero benefit rate when
+  // most participants were retired/terminated by the last projection year.
+  const year0Pop = population && population.length > 0 ? population[0] : null
+  const activeParticipants = year0Pop?.active_participants?.toLocaleString('en-US', { maximumFractionDigits: 0 }) ?? '0'
+  const avgTotalComp = year0Pop?.avg_total_compensation
+    ? Math.round(Number(year0Pop.avg_total_compensation)).toLocaleString('en-US')
     : '0'
-  const benefitRate = latestPop?.effective_benefit_rate != null
+  const benefitRate = year0Pop?.effective_benefit_rate != null
     ? (() => {
-        const val = Number(latestPop.effective_benefit_rate)
-        return val > 1 ? val.toFixed(1) : (val * 100).toFixed(2)
+        const val = Number(year0Pop.effective_benefit_rate)
+        // Guard: legacy data might store already-scaled (>1). Ratio < 1 → multiply by 100.
+        return val > 1 ? val.toFixed(2) : (val * 100).toFixed(2)
       })()
     : 'N/A'
-  const shareTurn = latestPop?.share_turn != null
+  // SEN-192: shareTurn is now a ratio from the engine. Still guard for legacy rows
+  // that stored a raw share count by treating > 1 as "already a percent value".
+  const shareTurn = year0Pop?.share_turn != null
     ? (() => {
-        const val = Number(latestPop.share_turn)
-        return val > 1 ? val.toFixed(1) : (val * 100).toFixed(2)
+        const val = Number(year0Pop.share_turn)
+        return val > 1 ? val.toFixed(2) : (val * 100).toFixed(2)
       })()
     : 'N/A'
 
@@ -185,7 +190,7 @@ export default async function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    ${valuations?.[0]?.price_per_share?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0.00'}
+                    ${valuations?.[0]?.price_per_share?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                   </div>
                   <div className="flex items-center gap-1 mt-1">
                     {priceTrend ? (
@@ -309,7 +314,7 @@ export default async function DashboardPage() {
                         <tr key={row.year} className="border-b last:border-0">
                           <td className="py-2">{row.year}</td>
                           <td className="text-right py-2">{fmt(row.esop_valuation)}</td>
-                          <td className="text-right py-2">${row.price_per_share?.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                          <td className="text-right py-2">${row.price_per_share?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                       ))}
                     </tbody>

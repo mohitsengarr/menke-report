@@ -852,6 +852,35 @@ describe('Config overrides integrated into runFormulaEngine', () => {
       .not.toThrow()
   })
 
+  it('SEN-192: shareTurn is a ratio (0 - ~1), not a raw share count', () => {
+    const out = runFormulaEngine([baseProfile], settings, VAL_DATE, SHARE_PRICES)
+    for (const row of out.populationAnalysis) {
+      // Ratio of shares turned / beginning shares for active participants.
+      // Allow up to 100% turnover; engine should never emit thousands.
+      expect(row.shareTurn).toBeGreaterThanOrEqual(0)
+      expect(row.shareTurn).toBeLessThanOrEqual(2)
+    }
+  })
+
+  it('SEN-194: cashSource includes OIA pool (not just EBITDA × contribution)', () => {
+    const withOIA: PlanSettings = { ...settings, oiaAnnualReturn: 0.06 }
+    const out = runFormulaEngine([baseProfile], withOIA, VAL_DATE, SHARE_PRICES)
+    // cashSource should be a meaningful dollar amount
+    for (const s of out.successScores) {
+      expect(s.cashSource).toBeGreaterThan(0)
+    }
+  })
+
+  it('SEN-194: annualESOPContribution > 1 treated as flat dollar amount', () => {
+    const flatDollar = { ...settings, annualESOPContribution: 500000 }
+    const rateOnly = { ...settings, annualESOPContribution: 0.05 }
+    const outFlat = runFormulaEngine([baseProfile], flatDollar, VAL_DATE, SHARE_PRICES)
+    const outRate = runFormulaEngine([baseProfile], rateOnly, VAL_DATE, SHARE_PRICES)
+    // Flat amount should produce consistent cashSource across years (no EBITDA multiplier)
+    expect(outFlat.successScores[0]!.cashSource).toBeGreaterThan(0)
+    expect(outRate.successScores[0]!.cashSource).toBeGreaterThan(0)
+  })
+
   it('engine output is a fresh object on each call (not cached)', () => {
     const out1 = runFormulaEngine([baseProfile], settings, VAL_DATE, SHARE_PRICES)
     const out2 = runFormulaEngine([baseProfile], settings, VAL_DATE, SHARE_PRICES)

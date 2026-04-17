@@ -986,6 +986,7 @@ function buildPopulationAnalysis(
     let totalEsopValue = 0
     let totalAllocShares = 0
     let totalShareTurn = 0
+    let totalBeginningShares = 0
 
     for (const pc of computed) {
       const yd = pc.yearlyData[yr]!
@@ -996,6 +997,7 @@ function buildPopulationAnalysis(
       totalEsopValue += yd.shareValue
       totalAllocShares += yd.newAllocation
       totalShareTurn += Math.abs(yd.totalShareDist)
+      totalBeginningShares += yd.beginningShares
     }
 
     const avgCashComp = activeCount > 0 ? totalCash / activeCount : 0
@@ -1007,6 +1009,10 @@ function buildPopulationAnalysis(
     const fringe = activeCount > 0 ? stockAllocValue / activeCount : 0
     const effectiveBenefitRate = totalComp > 0
       ? stockAllocValue / totalComp : 0
+    // SEN-192: shareTurn is a ratio (shares turned over / starting share pool)
+    // not a raw share count. Dashboard formats it as a percentage.
+    const shareTurnRatio = totalBeginningShares > 0
+      ? totalShareTurn / totalBeginningShares : 0
 
     rows.push({
       year: `Year ${yr}`,
@@ -1019,7 +1025,7 @@ function buildPopulationAnalysis(
       cashContributions: cashContrib,
       fringe,
       effectiveBenefitRate,
-      shareTurn: Math.round(totalShareTurn),
+      shareTurn: shareTurnRatio,
     })
   }
   return rows
@@ -1053,11 +1059,21 @@ function buildSuccessScores(
   const healthRed = Number(config?.['score.health_value_red'] ?? 0.2)
 
   return roRows.map((ro, idx) => {
-    // Cash source = EBITDA-based annual contribution (dollar amount)
-    // annualESOPContribution is a rate (e.g., 0.05 = 5%), multiply by projected EBITDA
+    // Cash source: aggregate cash available to fund repurchases this year.
+    // Legacy (DbApis.cs) sums: EBITDA×rate, OIA return pool, tax benefit pass-through,
+    // and existing cash contributions. We approximate by including:
+    //   1. Annual ESOP contribution — handled as rate OR dollar amount depending on scale
+    //      (values ≤ 1 treated as rate; > 1 treated as flat dollar amount)
+    //   2. OIA income pool (reflected in ro.oiaBalance field)
+    //   3. S-Corp tax benefit pass-through
     const projectedEbitda = settings.ebitda * Math.pow(1 + settings.ebitdaGrowthRate, idx)
-    const cashSource = (projectedEbitda * settings.annualESOPContribution)
-      + (settings.scCorporation === 'S' ? settings.taxBenefitAmount : 0)
+    const contribSource = settings.annualESOPContribution <= 1
+      ? projectedEbitda * settings.annualESOPContribution  // rate
+      : settings.annualESOPContribution                     // flat dollar amount
+    const oiaIncomePool = ro.oiaBalance ?? 0
+    const taxBenefit = (settings.scCorporation === 'S' || settings.scCorporation === 'Yes')
+      ? settings.taxBenefitAmount : 0
+    const cashSource = contribSource + oiaIncomePool + taxBenefit
 
     const surplus = cashSource - ro.totalRepurchaseObligation
     const cashBurn = cashSource > 0
