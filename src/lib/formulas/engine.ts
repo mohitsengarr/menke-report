@@ -245,32 +245,32 @@ export interface FormulaEngineOutput {
 // Date Helpers
 // ═══════════════════════════════════════════════════════════════
 
-function parseDate(d: string | null): Date | null {
+export function parseDate(d: string | null): Date | null {
   if (!d) return null
   const parsed = new Date(d)
   return isNaN(parsed.getTime()) ? null : parsed
 }
 
 /** Fractional years between two dates */
-function yearsBetween(earlier: Date, later: Date): number {
+export function yearsBetween(earlier: Date, later: Date): number {
   const ms = later.getTime() - earlier.getTime()
   return ms / (365.25 * 24 * 60 * 60 * 1000)
 }
 
 /** Age at a reference date */
-function ageAt(birthDate: Date, refDate: Date): number {
+export function ageAt(birthDate: Date, refDate: Date): number {
   return Math.floor(yearsBetween(birthDate, refDate))
 }
 
 /** Add N years to a date */
-function addYears(date: Date, years: number): Date {
+export function addYears(date: Date, years: number): Date {
   const d = new Date(date)
   d.setFullYear(d.getFullYear() + years)
   return d
 }
 
 /** Beginning-of-year date for a projection year offset */
-function yearDate(baseDate: Date, yearOffset: number): Date {
+export function yearDate(baseDate: Date, yearOffset: number): Date {
   return addYears(baseDate, yearOffset)
 }
 
@@ -283,7 +283,7 @@ function yearDate(baseDate: Date, yearOffset: number): Date {
  * - If terminated, use term_date.
  * - Otherwise, project normal retirement date (DOB + retirement age).
  */
-function calcSeparationDate(
+export function calcSeparationDate(
   birthDate: Date | null,
   termDate: Date | null,
   retirementAge: number
@@ -297,7 +297,7 @@ function calcSeparationDate(
  * Vesting percentage (Excel col DN):
  * Depends on vesting schedule (1-year cliff, 3-year cliff, 6-year graded).
  */
-function calcVestingPct(vestingPeriod: number, yearsOfService: number): number {
+export function calcVestingPct(vestingPeriod: number, yearsOfService: number): number {
   if (yearsOfService < 0) return 0
   if (vestingPeriod === 1) return yearsOfService >= 1 ? 1.0 : 0
   if (vestingPeriod === 3) return yearsOfService >= 3 ? 1.0 : 0
@@ -315,7 +315,7 @@ function calcVestingPct(vestingPeriod: number, yearsOfService: number): number {
  * Grows the participant's plan_comp by the applicable growth rate per year.
  * Capped at IRS Section 401(a)(17) compensation limit.
  */
-function calcProjectedComp(
+export function calcProjectedComp(
   basePlanComp: number,
   yearOffset: number,
   compGrowthRates: number[],
@@ -340,7 +340,7 @@ function calcProjectedComp(
  * Amortized installment payout over the distribution period using Sarason factor.
  * Only applies after separation, during the distribution window.
  */
-function calcCashRepurchase(
+export function calcCashRepurchase(
   isTerminated: boolean,
   yearsSinceSeparation: number,
   distributionPeriod: number,
@@ -370,7 +370,7 @@ function calcCashRepurchase(
  * age-graded turnover tables. The expected share outflow = shares * turnover rate.
  * Unvested portions are forfeited (vesting adjustment).
  */
-function calcShareRepurchase(
+export function calcShareRepurchase(
   isActive: boolean,
   age: number,
   shares: number,
@@ -394,7 +394,7 @@ function calcShareRepurchase(
  * can elect to diversify a percentage of their ESOP shares.
  * The percentages follow a statutory schedule over diversification years.
  */
-function calcEarlyRetirementDist(
+export function calcEarlyRetirementDist(
   isActive: boolean,
   age: number,
   yearsOfService: number,
@@ -415,7 +415,7 @@ function calcEarlyRetirementDist(
  * Expected share outflow from participant mortality.
  * = shares * mortality_rate for that age/gender
  */
-function calcDeathBenefitDist(
+export function calcDeathBenefitDist(
   isActive: boolean,
   age: number,
   gender: string | null,
@@ -431,7 +431,7 @@ function calcDeathBenefitDist(
  * Once a participant reaches age 72, they must take distributions
  * based on the IRS Uniform Lifetime Table divisor.
  */
-function calcRMDShareDist(age: number, shareBalance: number): number {
+export function calcRMDShareDist(age: number, shareBalance: number): number {
   if (age < 72 || shareBalance <= 0) return 0
   const lifeExp = lookupRMDLifeExpectancy(age)
   if (lifeExp <= 0) return 0
@@ -443,7 +443,7 @@ function calcRMDShareDist(age: number, shareBalance: number): number {
  * Participants over the in-service age threshold receive a fixed
  * distribution amount (as share equivalent).
  */
-function calcInServiceDist(
+export function calcInServiceDist(
   isActive: boolean,
   age: number,
   inServiceAge: number,
@@ -459,7 +459,7 @@ function calcInServiceDist(
  * Pro-rata allocation based on participant's comp / total covered comp.
  * Only for active participants when the plan is not frozen.
  */
-function calcNewAllocation(
+export function calcNewAllocation(
   isActive: boolean,
   projectedComp: number,
   totalCoveredComp: number,
@@ -478,7 +478,7 @@ function calcNewAllocation(
  * OIA (Other Investments Account) income (Excel col CS):
  * Annual return on the participant's OIA balance.
  */
-function calcOIAIncome(oiaBalance: number, annualReturn: number): number {
+export function calcOIAIncome(oiaBalance: number, annualReturn: number): number {
   return oiaBalance * annualReturn
 }
 
