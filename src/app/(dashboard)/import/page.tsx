@@ -199,35 +199,106 @@ export default function ImportPage() {
     }, 1000)
   }
 
-  function handlePopulationUpdate() {
+  async function handlePopulationUpdate() {
     const value = parseFloat(popChange)
-    if (isNaN(value)) {
+    if (isNaN(value) || !Number.isInteger(value)) {
       setPopStatus('error')
-      setPopMessage('Please enter a valid number.')
+      setPopMessage('Please enter a whole number.')
       return
     }
-
     if (value < -50 || value > 50) {
       setPopStatus('error')
       setPopMessage('Value must be between -50 and 50.')
       return
     }
 
-    setPopStatus('idle')
-    setPopMessage('')
+    try {
+      const res = await fetch('/api/population/project', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ incRate: value }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        setPopStatus('error')
+        setPopMessage(json.message || 'Update failed.')
+        return
+      }
+      setPopStatus('success')
+      setPopMessage(json.message || 'Population change applied.')
+    } catch (err) {
+      setPopStatus('error')
+      setPopMessage((err as Error).message)
+    }
+  }
 
-    // Navigate to the projection calculator with the population change value
-    window.location.href = `/population/projection?change=${value}`
+  function handleExcelExport() {
+    // Triggering a download via the API endpoint
+    window.location.href = '/api/excel/export'
+  }
+
+  // SEN-209 / SEN-211: Sync Data action re-runs the formula engine against
+  // existing input_data + current settings without requiring Excel re-upload.
+  const [syncDataStatus, setSyncDataStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle')
+  const [syncDataMessage, setSyncDataMessage] = useState('')
+  async function handleSyncData() {
+    setSyncDataStatus('syncing')
+    setSyncDataMessage('')
+    try {
+      const res = await fetch('/api/recompute', { method: 'POST' })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        setSyncDataStatus('error')
+        setSyncDataMessage(json.message || 'Sync failed')
+        return
+      }
+      setSyncDataStatus('success')
+      setSyncDataMessage(json.message || 'Analytics recomputed.')
+    } catch (err) {
+      setSyncDataStatus('error')
+      setSyncDataMessage((err as Error).message)
+    }
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Import Excel Data</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Upload your ESOP Excel workbook to populate all reports and projections.
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Import Excel Data</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Upload your ESOP Excel workbook to populate all reports and projections.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleSyncData}
+            disabled={syncDataStatus === 'syncing'}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-menke-navy text-menke-navy rounded-lg hover:bg-menke-navy/5 disabled:opacity-50"
+            title="Recompute analytics with current settings (no re-upload needed)"
+          >
+            {syncDataStatus === 'syncing' ? 'Syncing…' : 'Sync Data'}
+          </button>
+          <button
+            type="button"
+            onClick={handleExcelExport}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-menke-navy text-menke-navy rounded-lg hover:bg-menke-navy/5"
+            title="Download your current data as an Excel workbook"
+          >
+            Export to Excel
+          </button>
+        </div>
       </div>
+      {syncDataStatus === 'success' && syncDataMessage && (
+        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          {syncDataMessage}
+        </div>
+      )}
+      {syncDataStatus === 'error' && syncDataMessage && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {syncDataMessage}
+        </div>
+      )}
 
       {/* Hero Section: Upload Full Excel */}
       <Card className="border-2 border-primary/20 shadow-md">

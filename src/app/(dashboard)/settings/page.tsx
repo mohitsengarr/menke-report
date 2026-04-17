@@ -102,9 +102,11 @@ const FIELDS: Record<TabName, FieldDef[]> = {
     { key: 'distribution_years', label: 'Distribution Years', type: 'number', placeholder: '5' },
     { key: 'plan_retirement', label: 'Plan Retirement', type: 'number', placeholder: '65', required: true },
     { key: 'service_retirement', label: 'Service Retirement', type: 'number', placeholder: '5' },
-    { key: 'compensation_one_year', label: 'Compensation 1-Year', type: 'number', suffix: '%', placeholder: '5' },
-    { key: 'compensation_five_year', label: 'Compensation 5-Year', type: 'number', suffix: '%', placeholder: '5' },
-    { key: 'compensation_ten_year', label: 'Compensation 10-Year', type: 'number', suffix: '%', placeholder: '5' },
+    // SEN-205: labels renamed to clarify these are projected compensation
+    // GROWTH RATES (percentage per year), not absolute dollar figures.
+    { key: 'compensation_one_year', label: 'Comp Growth Rate — Years 0-1', type: 'number', suffix: '%', placeholder: '5' },
+    { key: 'compensation_five_year', label: 'Comp Growth Rate — Years 2-5', type: 'number', suffix: '%', placeholder: '5' },
+    { key: 'compensation_ten_year', label: 'Comp Growth Rate — Years 6-10', type: 'number', suffix: '%', placeholder: '5' },
     { key: 'turnover_five_year', label: 'Turnover 5-Year', type: 'text', placeholder: 'T-1' },
     { key: 'turnover_ten_year', label: 'Turnover 10-Year', type: 'text', placeholder: 'T-1' },
   ],
@@ -154,8 +156,8 @@ const FIELDS: Record<TabName, FieldDef[]> = {
     { key: 'total_esop_shares', label: 'Total ESOP Shares', type: 'number', placeholder: '3000', required: true },
     { key: 'ebitda', label: 'EBITDA', type: 'number', placeholder: '5000000', required: true },
     { key: 'cap_rate', label: 'Cap Rate', type: 'number', suffix: '%', placeholder: '22.5', required: true },
-    { key: 'dloc', label: 'DLOC', type: 'number', placeholder: '0' },
-    { key: 'dlom', label: 'DLOM', type: 'number', placeholder: '0' },
+    { key: 'dloc', label: 'DLOC (Discount for Lack of Control)', type: 'number', suffix: '%', placeholder: '0' },
+    { key: 'dlom', label: 'DLOM (Discount for Lack of Marketability)', type: 'number', suffix: '%', placeholder: '0' },
     { key: 'lt_debt', label: 'Long-Term Debt', type: 'number', placeholder: '0' },
     { key: 'working_capital', label: 'Working Capital', type: 'number', placeholder: '0' },
     { key: 'excess_cash_assets', label: 'Excess Cash / Assets', type: 'number', placeholder: '0' },
@@ -261,7 +263,27 @@ export default function SettingsPage() {
         .upsert(payload, { onConflict: 'user_id' })
 
       if (error) throw error
-      setMessage({ type: 'success', text: `${activeTab} saved successfully.` })
+
+      // SEN-211: Auto-trigger recompute so analytical tables reflect the
+      // updated settings immediately. Best-effort — surface any issue but
+      // don't roll back the save.
+      try {
+        const res = await fetch('/api/recompute', { method: 'POST' })
+        const json = await res.json()
+        if (res.ok && json.success) {
+          setMessage({
+            type: 'success',
+            text: `${activeTab} saved and analytics recomputed for ${json.participantCount} participants.`,
+          })
+        } else {
+          setMessage({
+            type: 'success',
+            text: `${activeTab} saved. Recompute skipped: ${json.message ?? 'unknown reason'}`,
+          })
+        }
+      } catch {
+        setMessage({ type: 'success', text: `${activeTab} saved successfully.` })
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Save failed'
       setMessage({ type: 'error', text: msg })

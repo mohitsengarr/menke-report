@@ -185,9 +185,9 @@ export async function processExcelWorkbook(userId: string, fileBuffer: Buffer) {
   // ──────────────────────────────────────────
 
   // Update profile — preserve existing company_name when Excel A1 is blank (SEN-196)
+  // Preserve user's population projection rate (inc_rate) across uploads too.
   const profileUpdate: Record<string, unknown> = {
     last_updated_at: new Date().toISOString(),
-    inc_rate: 0,
   }
   if (companyName && companyName.trim().length > 0) {
     profileUpdate.company_name = companyName
