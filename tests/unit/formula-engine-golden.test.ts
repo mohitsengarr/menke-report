@@ -731,7 +731,7 @@ describe('Config overrides integrated into runFormulaEngine', () => {
     if (baseNPV > 0) expect(newNPV).toBeLessThan(baseNPV)
   })
 
-  it('override age.rmd_start=60 → age 66 active gets RMD (default 72 would not)', () => {
+  it('SEN-207: override age.rmd_start=65 → age 66 active now gets RMD', () => {
     const rmdProfile = makeParticipant({
       birth_date: '1960-01-01',
       hire_date: '1985-01-01',
@@ -741,19 +741,14 @@ describe('Config overrides integrated into runFormulaEngine', () => {
     })
     const highRetireAge = makeSettings({ retirementAge: 100, planRetirement: 100 })
     const baseOut = runFormulaEngine([rmdProfile], highRetireAge, VAL_DATE, SHARE_PRICES)
-    // Bypass config min bound by calling engine directly; the registry min is 65 but
-    // the engine accepts any resolved value — API layer enforces bounds.
     const overrides: FormulaConfigOverride[] = [
       { config_key: 'age.rmd_start', value_number: 65, value_text: null, value_json: null },
     ]
     const newOut = runFormulaEngine([rmdProfile], highRetireAge, VAL_DATE, SHARE_PRICES, overrides)
     // Default: age ~66 < 72 → no RMD in year 0
     expect(baseOut.participantDetails[0]!.yearlyData[0]!.rmdShareDist).toBe(0)
-    // Override: lookupRMDLifeExpectancy returns 0 for age < 72 → still no distribution
-    // but override lets the age guard pass. The lookup table itself is not configurable,
-    // so RMD stays 0 until we also make the lookup table respect the override. Verify the
-    // behavior is correct as-is: the age gate moved but the table is still keyed from 72.
-    expect(newOut.participantDetails[0]!.yearlyData[0]!.rmdShareDist).toBe(0)
+    // Override: lookup table now covers ages 50+ so age 66 produces a non-zero distribution
+    expect(newOut.participantDetails[0]!.yearlyData[0]!.rmdShareDist).toBeLessThan(0)
   })
 
   it('override dist.diversification_years_1_5=0.50 → doubles diversification share outflow', () => {

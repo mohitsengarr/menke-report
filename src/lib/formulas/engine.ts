@@ -453,7 +453,7 @@ export function calcRMDShareDist(
 ): number {
   const rmdStart = Number(config?.['age.rmd_start'] ?? 72)
   if (age < rmdStart || shareBalance <= 0) return 0
-  const lifeExp = lookupRMDLifeExpectancy(age)
+  const lifeExp = lookupRMDLifeExpectancy(age, rmdStart)
   if (lifeExp <= 0) return 0
   return -(shareBalance / lifeExp)
 }

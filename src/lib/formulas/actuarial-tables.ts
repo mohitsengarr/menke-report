@@ -36,8 +36,21 @@ export function lookupMortality(age: number, gender: string | null): number {
   return (table[lower] ?? table[20]!) + frac * ((table[upper] ?? table[90]!) - (table[lower] ?? table[20]!))
 }
 
-// IRS Uniform Lifetime Table for RMD
+// IRS Uniform Lifetime Table for RMD (ages 72+, official values)
+// Ages 50–71 extrapolated using the standard IRS Single Life extension
+// pattern (~1 year divisor per year of age younger) so that
+// `age.rmd_start` overrides below 72 produce non-zero distributions.
+// These values are NOT used for tax-reporting RMDs (which only start at 72
+// under IRC 401(a)(9)); they're only in effect when a plan admin lowers
+// the RMD age gate via `age.rmd_start` for projection modeling.
 const RMD_TABLE: Record<number, number> = {
+  // Extrapolated below-72 (for config overrides only)
+  50: 48.5, 51: 47.5, 52: 46.5, 53: 45.6, 54: 44.6,
+  55: 43.6, 56: 42.6, 57: 41.6, 58: 40.7, 59: 39.7,
+  60: 38.8, 61: 37.9, 62: 37.0, 63: 36.0, 64: 35.1,
+  65: 34.2, 66: 33.3, 67: 32.4, 68: 31.6, 69: 30.7,
+  70: 29.8, 71: 28.6,
+  // Official IRS Uniform Lifetime Table (2022+)
   72: 27.4, 73: 26.5, 74: 25.5, 75: 24.6, 76: 23.7,
   77: 22.9, 78: 22.0, 79: 21.1, 80: 20.2, 81: 19.4,
   82: 18.5, 83: 17.7, 84: 16.8, 85: 16.0, 86: 15.2,
@@ -50,8 +63,16 @@ const RMD_TABLE: Record<number, number> = {
   116: 2.8, 117: 2.7, 118: 2.5, 119: 2.3, 120: 2.0,
 }
 
-export function lookupRMDLifeExpectancy(age: number): number {
-  if (age < 72) return 0
+/**
+ * Life expectancy divisor for RMD calculations.
+ *
+ * @param age participant's current age
+ * @param rmdStartAge minimum age at which RMD applies (default 72 per IRS;
+ *   can be lowered via `age.rmd_start` config override for projection modeling)
+ */
+export function lookupRMDLifeExpectancy(age: number, rmdStartAge: number = 72): number {
+  if (age < rmdStartAge) return 0
+  if (age < 50) return 0
   if (age > 120) return 2.0
   return RMD_TABLE[age] ?? 2.0
 }

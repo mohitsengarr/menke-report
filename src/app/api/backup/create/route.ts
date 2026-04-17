@@ -18,8 +18,15 @@ export async function POST() {
       supabase.from('average_age_tenure_terminated').select('*').eq('user_id', user.id),
     ])
 
-    // Get company name
-    const { data: profile } = await supabase.from('profiles').select('company_name').eq('id', user.id).single()
+    // Get company name (fall back to username, then a friendly default — SEN-196)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('company_name, username')
+      .eq('id', user.id)
+      .single()
+    const companyName = (profile?.company_name && profile.company_name.trim())
+      || profile?.username
+      || 'My ESOP Plan'
 
     const snapshotData = {
       valuations: valuations.data,
@@ -33,7 +40,7 @@ export async function POST() {
 
     const { error } = await supabase.from('snapshots').insert({
       user_id: user.id,
-      company_name: profile?.company_name || 'Unknown',
+      company_name: companyName,
       snapshot_data: snapshotData,
     })
 

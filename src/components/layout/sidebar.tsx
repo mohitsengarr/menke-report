@@ -12,7 +12,8 @@ import type { Profile } from '@/lib/types/database'
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Projections', href: '/valuation', icon: TrendingUp, children: [
+  // SEN-203: label now matches destination page title ("Capital Table & Valuation")
+  { label: 'Valuation', href: '/valuation', icon: TrendingUp, children: [
     { label: 'Capital Table & Valuation', href: '/valuation' },
     { label: 'Share Turnover Schedule', href: '/repurchase' },
     { label: 'Repurchase Obligation', href: '/repurchase/share-turnover' },

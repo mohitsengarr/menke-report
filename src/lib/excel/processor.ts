@@ -184,12 +184,15 @@ export async function processExcelWorkbook(userId: string, fileBuffer: Buffer) {
   // 4. Upsert everything to Supabase
   // ──────────────────────────────────────────
 
-  // Update profile
-  await supabase.from('profiles').update({
-    company_name: companyName,
+  // Update profile — preserve existing company_name when Excel A1 is blank (SEN-196)
+  const profileUpdate: Record<string, unknown> = {
     last_updated_at: new Date().toISOString(),
     inc_rate: 0,
-  }).eq('id', userId)
+  }
+  if (companyName && companyName.trim().length > 0) {
+    profileUpdate.company_name = companyName
+  }
+  await supabase.from('profiles').update(profileUpdate).eq('id', userId)
 
   // Delete analytical data (always recomputed). For single-tab uploads we preserve
   // existing plan settings in the DB so the user doesn't lose configuration.

@@ -501,6 +501,23 @@ describe('calcRMDShareDist boundaries', () => {
     ])
     expect(calcRMDShareDist(72, 1000, c)).toBe(0)
   })
+  it('SEN-207: config override rmdStart=65 → age 66 produces non-zero RMD', () => {
+    const c = resolveFormulaConfig([
+      { config_key: 'age.rmd_start', value_number: 65, value_text: null, value_json: null },
+    ])
+    expect(calcRMDShareDist(66, 1000, c)).toBeLessThan(0)
+  })
+  it('SEN-207: lookupRMDLifeExpectancy respects rmdStartAge arg', () => {
+    // Inferred via engine tests; life-expectancy table now covers ages 50+
+    // when the override gate is lowered.
+    const c = resolveFormulaConfig([
+      { config_key: 'age.rmd_start', value_number: 60, value_text: null, value_json: null },
+    ])
+    // Age 60 with override=60 → gets RMD
+    expect(calcRMDShareDist(60, 1000, c)).toBeLessThan(0)
+    // Age 59 with override=60 → below gate → 0
+    expect(calcRMDShareDist(59, 1000, c)).toBe(0)
+  })
 })
 
 // ═══════════════════════════════════════════════════════════════
