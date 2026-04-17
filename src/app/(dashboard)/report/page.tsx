@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { FileText, FileSpreadsheet, Eye } from 'lucide-react'
+import { FileText, Presentation, Eye, Loader2 } from 'lucide-react'
 
 export default function ReportPage() {
   const [title, setTitle] = useState('ESOP Repurchase Obligation Analysis')
@@ -11,9 +11,58 @@ export default function ReportPage() {
     new Date().toISOString().split('T')[0]
   )
   const [executiveSummary, setExecutiveSummary] = useState('')
+  const [pdfLoading, setPdfLoading] = useState(false)
+  const [pptxLoading, setPptxLoading] = useState(false)
 
   const inputCls =
     'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+
+  async function handleGeneratePDF() {
+    setPdfLoading(true)
+    try {
+      const res = await fetch('/api/report/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, subtitle, reportDate, executiveSummary }),
+      })
+      if (!res.ok) throw new Error('PDF generation failed')
+      const html = await res.text()
+      const blob = new Blob([html], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      // Clean up after a short delay to allow the new tab to load
+      setTimeout(() => URL.revokeObjectURL(url), 5000)
+    } catch {
+      alert('Failed to generate PDF report. Please try again.')
+    } finally {
+      setPdfLoading(false)
+    }
+  }
+
+  async function handleGeneratePPTX() {
+    setPptxLoading(true)
+    try {
+      const res = await fetch('/api/report/pptx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, subtitle }),
+      })
+      if (!res.ok) throw new Error('PPTX generation failed')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${(title || 'report').replace(/[^a-zA-Z0-9]/g, '_')}.pptx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch {
+      alert('Failed to generate PPTX. Please try again.')
+    } finally {
+      setPptxLoading(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -82,36 +131,22 @@ export default function ReportPage() {
             </div>
 
             <div className="flex flex-wrap gap-3 pt-2">
-              <div className="relative group">
-                <button
-                  disabled
-                  className="inline-flex items-center gap-2 rounded-lg bg-gray-300 px-4 py-2.5 text-sm font-medium text-gray-500 cursor-not-allowed"
-                >
-                  <FileText className="h-4 w-4" />
-                  Generate PDF
-                </button>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block">
-                  <div className="rounded-md bg-gray-900 px-3 py-1.5 text-xs text-white whitespace-nowrap shadow-lg">
-                    Coming soon - Phase 5
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
-                  </div>
-                </div>
-              </div>
-              <div className="relative group">
-                <button
-                  disabled
-                  className="inline-flex items-center gap-2 rounded-lg bg-gray-300 px-4 py-2.5 text-sm font-medium text-gray-500 cursor-not-allowed"
-                >
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Generate PPTX
-                </button>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block">
-                  <div className="rounded-md bg-gray-900 px-3 py-1.5 text-xs text-white whitespace-nowrap shadow-lg">
-                    Coming soon - Phase 5
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
-                  </div>
-                </div>
-              </div>
+              <button
+                onClick={handleGeneratePDF}
+                disabled={pdfLoading}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#1B2A4A] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#2C3E6B] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {pdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                {pdfLoading ? 'Generating...' : 'Generate PDF'}
+              </button>
+              <button
+                onClick={handleGeneratePPTX}
+                disabled={pptxLoading}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#3B7DD8] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#2C6BBF] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {pptxLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Presentation className="h-4 w-4" />}
+                {pptxLoading ? 'Generating...' : 'Generate PPTX'}
+              </button>
             </div>
           </CardContent>
         </Card>
@@ -163,11 +198,11 @@ export default function ReportPage() {
                 )}
               </div>
 
-              {/* Mock sections indicator */}
+              {/* Sections indicator */}
               <div className="border-t border-gray-100 px-6 py-4 bg-gray-50 rounded-b-lg">
                 <p className="text-xs text-gray-400 text-center">
-                  Report sections (Valuation, Repurchase, Population, Success Score) will be
-                  auto-generated from your data in Phase 5.
+                  Report includes: Valuation, Repurchase Obligation, Share Turnover,
+                  Population Analysis, Success Score, and Age/Tenure data.
                 </p>
               </div>
             </div>

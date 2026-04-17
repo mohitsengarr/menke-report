@@ -188,6 +188,26 @@ export type SuccessScore = {
   key_takeaway: string | null
 }
 
+export type AverageAgeTenureActive = {
+  id: string
+  user_id: string
+  category: string
+  count: number
+  avg_age: number
+  avg_tenure: number
+  avg_balance: number
+}
+
+export type AverageAgeTenureTerminated = {
+  id: string
+  user_id: string
+  category: string
+  count: number
+  avg_age: number
+  avg_tenure: number
+  avg_balance: number
+}
+
 export type Snapshot = {
   id: string
   user_id: string

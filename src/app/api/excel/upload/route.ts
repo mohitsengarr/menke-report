@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { processExcelWorkbook } from '@/lib/excel/processor'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -21,35 +22,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'Only .xlsx files are supported' }, { status: 400 })
     }
 
-    // Upload to Supabase Storage
     const buffer = Buffer.from(await file.arrayBuffer())
+
+    // Upload to Supabase Storage
     const filePath = `${user.id}/current.xlsx`
+    await supabase.storage.from('excel-files').upload(filePath, buffer, {
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      upsert: true,
+    })
 
-    const { error: uploadError } = await supabase.storage
-      .from('excel-files')
-      .upload(filePath, buffer, {
-        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        upsert: true
-      })
-
-    if (uploadError) {
-      return NextResponse.json({ success: false, message: 'Failed to upload file: ' + uploadError.message }, { status: 500 })
-    }
-
-    // Update last_updated_at on profile
-    await supabase.from('profiles').update({
-      last_updated_at: new Date().toISOString()
-    }).eq('id', user.id)
-
-    // TODO: Phase 3 - Process Excel with ExcelJS, inject formulas, extract computed values
-    // TODO: Parse worksheets and populate analytical tables
+    // Process the workbook — extract all data and store in Supabase
+    const result = await processExcelWorkbook(user.id, buffer)
 
     return NextResponse.json({
       success: true,
-      message: 'File uploaded successfully. Data processing will be available soon.',
-      file: { name: file.name, size: file.size }
+      message: `Successfully imported ${result.participantCount} participants for ${result.companyName}.`,
+      ...result,
     })
-  } catch (error) {
-    return NextResponse.json({ success: false, message: 'Upload failed. Please try again.' }, { status: 500 })
+  } catch (error: any) {
+    console.error('Excel upload error:', error)
+    return NextResponse.json({
+      success: false,
+      message: error.message || 'Upload failed. Please check your file format and try again.',
+    }, { status: 500 })
   }
 }
