@@ -210,6 +210,17 @@ export default function SettingsPage() {
       }),
     )
 
+    // Normalize esop_formation_date: if it looks like an ISO date string, extract just the year
+    const distrib = results['Distributions'] as Record<string, unknown> | undefined
+    if (distrib?.esop_formation_date && typeof distrib.esop_formation_date === 'string') {
+      const raw = distrib.esop_formation_date as string
+      // Match ISO date like "2020-01-01T00:00:00.000Z" or "2020-06-15" and extract year
+      const isoMatch = raw.match(/^(\d{4})-\d{2}-\d{2}/)
+      if (isoMatch) {
+        distrib.esop_formation_date = isoMatch[1]
+      }
+    }
+
     setData(results as Record<TabName, Record<string, unknown>>)
     setLoading(false)
   }, [])

@@ -18,6 +18,11 @@ export default async function PopulationPage() {
     .order('year')
 
   const rows = (analyses ?? []) as PopulationAnalysis[]
+  rows.sort((a, b) => {
+    const yearA = parseInt(a.year.replace(/\D/g, '')) || 0
+    const yearB = parseInt(b.year.replace(/\D/g, '')) || 0
+    return yearA - yearB
+  })
 
   if (rows.length === 0) {
     return (

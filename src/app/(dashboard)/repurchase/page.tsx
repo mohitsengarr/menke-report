@@ -18,7 +18,17 @@ export default async function RepurchasePage() {
   ])
 
   const roRows = (obligations ?? []) as RepurchaseObligation[]
+  roRows.sort((a, b) => {
+    const yearA = parseInt(a.year.replace(/\D/g, '')) || 0
+    const yearB = parseInt(b.year.replace(/\D/g, '')) || 0
+    return yearA - yearB
+  })
   const stRows = (turnover ?? []) as ShareTurnoverSchedule[]
+  stRows.sort((a, b) => {
+    const yearA = parseInt(a.year.replace(/\D/g, '')) || 0
+    const yearB = parseInt(b.year.replace(/\D/g, '')) || 0
+    return yearA - yearB
+  })
 
   if (roRows.length === 0) {
     return (

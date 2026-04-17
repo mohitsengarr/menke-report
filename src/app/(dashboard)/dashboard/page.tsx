@@ -12,6 +12,20 @@ export default async function DashboardPage() {
   const { data: population } = await supabase.from('population_analyses').select('*').eq('user_id', user!.id).order('year')
   const { data: scores } = await supabase.from('success_scores').select('*').eq('user_id', user!.id).order('year_for_payout')
 
+  const yearSort = (a: { year: string }, b: { year: string }) => {
+    const yearA = parseInt(a.year.replace(/\D/g, '')) || 0
+    const yearB = parseInt(b.year.replace(/\D/g, '')) || 0
+    return yearA - yearB
+  }
+  if (valuations) valuations.sort(yearSort)
+  if (repurchase) repurchase.sort(yearSort)
+  if (population) population.sort(yearSort)
+  if (scores) scores.sort((a, b) => {
+    const yearA = parseInt(a.year_for_payout.replace(/\D/g, '')) || 0
+    const yearB = parseInt(b.year_for_payout.replace(/\D/g, '')) || 0
+    return yearA - yearB
+  })
+
   const hasData = valuations && valuations.length > 0
 
   return (
@@ -89,7 +103,12 @@ export default async function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {scores?.[0]?.esop_success_score ? `${(scores[0].esop_success_score * 100).toFixed(1)}%` : 'N/A'}
+                  {scores?.[0]?.esop_success_score != null
+                    ? `${(scores[0].esop_success_score > 1
+                        ? scores[0].esop_success_score
+                        : scores[0].esop_success_score * 100
+                      ).toFixed(1)}%`
+                    : 'N/A'}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">ESOP sustainability rating</p>
               </CardContent>

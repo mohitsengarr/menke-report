@@ -19,6 +19,11 @@ export default async function ValuationPage() {
     .order('year')
 
   const rows = (projections ?? []) as ValuationProjection[]
+  rows.sort((a, b) => {
+    const yearA = parseInt(a.year.replace(/\D/g, '')) || 0
+    const yearB = parseInt(b.year.replace(/\D/g, '')) || 0
+    return yearA - yearB
+  })
 
   if (rows.length === 0) {
     return (
@@ -66,14 +71,14 @@ export default async function ValuationPage() {
                 {rows.map((r) => (
                   <tr key={r.id} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="py-2 pr-4 font-medium">{r.year}</td>
-                    <td className="py-2 pr-4 text-right">{fmt(r.esop_valuation)}</td>
-                    <td className="py-2 pr-4 text-right">{r.esop_shares.toLocaleString()}</td>
-                    <td className="py-2 pr-4 text-right">{(r.pct_esop_shares * 100).toFixed(1)}%</td>
-                    <td className="py-2 pr-4 text-right">{r.other_shares.toLocaleString()}</td>
-                    <td className="py-2 pr-4 text-right">{(r.pct_other_shares * 100).toFixed(1)}%</td>
-                    <td className="py-2 pr-4 text-right">{r.total_shares.toLocaleString()}</td>
-                    <td className="py-2 pr-4 text-right">{fmtShare(r.price_per_share)}</td>
-                    <td className="py-2 text-right">{(r.share_price_change * 100).toFixed(1)}%</td>
+                    <td className="py-2 pr-4 text-right">{fmt(r.esop_valuation ?? 0)}</td>
+                    <td className="py-2 pr-4 text-right">{(r.esop_shares ?? 0).toLocaleString()}</td>
+                    <td className="py-2 pr-4 text-right">{((r.pct_esop_shares ?? 0) * 100).toFixed(1)}%</td>
+                    <td className="py-2 pr-4 text-right">{(r.other_shares ?? 0).toLocaleString()}</td>
+                    <td className="py-2 pr-4 text-right">{((r.pct_other_shares ?? 0) * 100).toFixed(1)}%</td>
+                    <td className="py-2 pr-4 text-right">{(r.total_shares ?? 0).toLocaleString()}</td>
+                    <td className="py-2 pr-4 text-right">{fmtShare(r.price_per_share ?? 0)}</td>
+                    <td className="py-2 text-right">{((r.share_price_change ?? 0) * 100).toFixed(1)}%</td>
                   </tr>
                 ))}
               </tbody>

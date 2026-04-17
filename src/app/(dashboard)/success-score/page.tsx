@@ -25,6 +25,11 @@ export default async function SuccessScorePage() {
     .order('year_for_payout')
 
   const rows = (scores ?? []) as SuccessScore[]
+  rows.sort((a, b) => {
+    const yearA = parseInt(a.year_for_payout.replace(/\D/g, '')) || 0
+    const yearB = parseInt(b.year_for_payout.replace(/\D/g, '')) || 0
+    return yearA - yearB
+  })
 
   if (rows.length === 0) {
     return (
