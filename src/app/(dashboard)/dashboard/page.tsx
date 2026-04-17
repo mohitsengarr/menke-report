@@ -82,6 +82,18 @@ export default async function DashboardPage() {
   const retirePct = driverTotal > 0 ? ((totalRetire / driverTotal) * 100).toFixed(1) : '0.0'
   const turnoverPct = driverTotal > 0 ? ((totalTurnoverShares / driverTotal) * 100).toFixed(1) : '0.0'
 
+  // SEN-206: Purchase Average = average total RO across the projection horizon.
+  // Purchase Average % = Purchase Average / average ESOP Valuation.
+  const roValues = repurchase?.map((r: any) => Number(r.total_repurchase_obligation) || 0) ?? []
+  const purchaseAverage = roValues.length > 0
+    ? roValues.reduce((a: number, b: number) => a + b, 0) / roValues.length
+    : 0
+  const valuationValues = valuations?.map((v: any) => Number(v.esop_valuation) || 0) ?? []
+  const avgValuation = valuationValues.length > 0
+    ? valuationValues.reduce((a: number, b: number) => a + b, 0) / valuationValues.length
+    : 0
+  const purchaseAveragePct = avgValuation > 0 ? purchaseAverage / avgValuation : 0
+
   // SEN-191, SEN-193: Population & Compensation reads Year 0 for consistency with the top KPI card.
   // Using the latest (Year 10) row caused active count drift and zero benefit rate when
   // most participants were retired/terminated by the last projection year.
@@ -347,6 +359,17 @@ export default async function DashboardPage() {
                   <div>
                     <p className="text-2xl font-bold text-menke-navy">{turnoverPct}%</p>
                     <p className="text-xs text-gray-500">Turnover</p>
+                  </div>
+                </div>
+                {/* SEN-206: Purchase Average KPIs */}
+                <div className="mt-4 pt-3 border-t grid grid-cols-2 gap-4 text-center">
+                  <div>
+                    <p className="text-lg font-bold text-menke-navy">{fmt(purchaseAverage)}</p>
+                    <p className="text-xs text-gray-500">Purchase Average</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-menke-navy">{(purchaseAveragePct * 100).toFixed(1)}%</p>
+                    <p className="text-xs text-gray-500">Purchase Avg / Valuation</p>
                   </div>
                 </div>
               </CardContent>

@@ -139,6 +139,19 @@ export function Sidebar({ profile }: { profile: Profile | null }) {
               </Link>
             </>
           )}
+
+          {/* SEN-210: Footer links */}
+          <div className="pt-6 mt-4 border-t border-gray-200">
+            <Link
+              href="/privacy"
+              className="flex items-center gap-3 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700"
+            >
+              Privacy Policy
+            </Link>
+            <p className="px-3 mt-1 text-[10px] text-gray-400">
+              &copy; {new Date().getFullYear()} Menke &amp; Associates
+            </p>
+          </div>
         </motion.nav>
       </aside>
     </>
