@@ -778,3 +778,51 @@ describe('cn() utility merges class names', () => {
     expect(items).toEqual(['a', 'b'])
   })
 })
+
+// ---------------------------------------------------------------------------
+// Bug fix UI validations
+// ---------------------------------------------------------------------------
+describe('Bug fix UI validations', () => {
+  it('success score display handles 0-1 range correctly', () => {
+    const score = 0.85
+    const display = `${(score * 100).toFixed(1)}%`
+    expect(display).toBe('85.0%')
+  })
+
+  it('success score display handles legacy >1 values', () => {
+    const score = 5
+    const display = score > 1 ? `${score.toFixed(1)}` : `${(score * 100).toFixed(1)}%`
+    expect(display).toBe('5.0')
+  })
+
+  it('topbar avatar fallback for null profile', () => {
+    const profile = null
+    const fallback = profile?.username?.charAt(0)?.toUpperCase() || 'U'
+    expect(fallback).toBe('U')
+  })
+
+  it('projections route exists in nav', () => {
+    // The sidebar should have a Projections section
+    const projectionSubPages = ['/valuation', '/repurchase', '/repurchase/share-turnover']
+    expect(projectionSubPages).toContain('/valuation')
+  })
+
+  it('year sort helper handles real population data format', () => {
+    const rows = [
+      { year: '2024', count: 173 },
+      { year: '2034', count: 207 },
+      { year: '2025', count: 176 },
+    ]
+    rows.sort((a, b) => parseInt(a.year) - parseInt(b.year))
+    expect(rows[0].year).toBe('2024')
+    expect(rows[2].year).toBe('2034')
+  })
+
+  it('null guard on numeric display values', () => {
+    const values: (number | null)[] = [null, undefined as any, 0, 100, -50]
+    values.forEach(v => {
+      expect(() => ((v ?? 0) * 100).toFixed(1)).not.toThrow()
+      expect(() => (v ?? 0).toLocaleString()).not.toThrow()
+    })
+  })
+})

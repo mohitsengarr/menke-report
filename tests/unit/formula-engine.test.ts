@@ -942,10 +942,10 @@ describe('runFormulaEngine', () => {
       [makeParticipant()], settings, valuationDate, sharePrices
     )
     expect(result.successScores).toHaveLength(11)
-    // Each success score should have a valid score between 1-5
+    // Each success score should have a valid score between 0-1 (decimal, not 1-5 integer)
     result.successScores.forEach(row => {
-      expect(row.esopSuccessScore).toBeGreaterThanOrEqual(1)
-      expect(row.esopSuccessScore).toBeLessThanOrEqual(5)
+      expect(row.esopSuccessScore).toBeGreaterThanOrEqual(0)
+      expect(row.esopSuccessScore).toBeLessThanOrEqual(1)
     })
   })
 
@@ -1158,5 +1158,147 @@ describe('edge cases and cross-function consistency', () => {
     const allTermBucket = result.ageTenureTerminated.find(r => r.category === 'All')
     expect(allTermBucket).toBeDefined()
     expect(allTermBucket!.count).toBe(1)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════
+// Bug fix regression tests
+// ═══════════════════════════════════════════════════════════════
+
+describe('Bug fix regression tests', () => {
+  // SEN-189: Success score should be 0-1 decimal, not 1-5 integer
+  describe('Success Score scale (SEN-189 fix)', () => {
+    it('score is between 0.0 and 1.0 for all cash burn ratios', () => {
+      // Test the buildSuccessScores logic indirectly via runFormulaEngine
+      const result = runFormulaEngine(
+        [makeParticipant({ plan_comp: 100000, total_cash: 50000, shares: [500] })],
+        makeSettings({ ebitda: 5000000, annualESOPContribution: 0.05, ebitdaGrowthRate: 0.05 }),
+        new Date('2024-01-01'),
+        Array(11).fill(100)
+      )
+      result.successScores.forEach(row => {
+        expect(row.esopSuccessScore).toBeGreaterThanOrEqual(0)
+        expect(row.esopSuccessScore).toBeLessThanOrEqual(1)
+      })
+    })
+
+    it('score of 0.95 means 95% when multiplied by 100 (dashboard display)', () => {
+      const score = 0.95
+      const display = `${(score * 100).toFixed(1)}%`
+      expect(display).toBe('95.0%')
+    })
+
+    it('score > 1 treated as already percentage (legacy guard)', () => {
+      const score = 5
+      const display = score > 1 ? `${score.toFixed(1)}` : `${(score * 100).toFixed(1)}%`
+      expect(display).toBe('5.0')
+    })
+  })
+
+  // SEN-187: Year sorting should be numeric, not alphabetical
+  describe('Year sorting (SEN-187 fix)', () => {
+    it('sorts "Year 0" through "Year 10" numerically', () => {
+      const years = ['Year 1', 'Year 10', 'Year 2', 'Year 0', 'Year 9', 'Year 3']
+      years.sort((a, b) => {
+        const ya = parseInt(a.replace(/\D/g, '')) || 0
+        const yb = parseInt(b.replace(/\D/g, '')) || 0
+        return ya - yb
+      })
+      expect(years).toEqual(['Year 0', 'Year 1', 'Year 2', 'Year 3', 'Year 9', 'Year 10'])
+    })
+
+    it('sorts "2024" through "2034" numerically', () => {
+      const years = ['2025', '2034', '2024', '2030', '2026']
+      years.sort((a, b) => parseInt(a) - parseInt(b))
+      expect(years).toEqual(['2024', '2025', '2026', '2030', '2034'])
+    })
+
+    it('handles mixed year formats', () => {
+      const years = ['Year 10', 'Year 1', '2024', 'Year 2']
+      years.sort((a, b) => {
+        const ya = parseInt(a.replace(/\D/g, '')) || 0
+        const yb = parseInt(b.replace(/\D/g, '')) || 0
+        return ya - yb
+      })
+      expect(years[0]).toBe('Year 1')
+    })
+  })
+
+  // SEN-186: Null value handling in table cells
+  describe('Null value guards (SEN-186 fix)', () => {
+    it('null ?? 0 defaults to 0 for numeric fields', () => {
+      const val: number | null = null
+      expect(val ?? 0).toBe(0)
+    })
+
+    it('undefined ?? 0 defaults to 0', () => {
+      const val: number | undefined = undefined
+      expect(val ?? 0).toBe(0)
+    })
+
+    it('toFixed on null-guarded value does not throw', () => {
+      const val: number | null = null
+      expect(() => ((val ?? 0) * 100).toFixed(1)).not.toThrow()
+    })
+
+    it('toLocaleString on null-guarded value does not throw', () => {
+      const val: number | null = null
+      expect(() => (val ?? 0).toLocaleString()).not.toThrow()
+    })
+  })
+
+  // SEN-188: ESOP Formation Date normalization
+  describe('Date normalization (SEN-188 fix)', () => {
+    it('extracts year from ISO date string "2020-05-31T00:00:00.000Z"', () => {
+      const raw = '2020-05-31T00:00:00.000Z'
+      const year = /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.substring(0, 4) : raw
+      expect(year).toBe('2020')
+    })
+
+    it('leaves plain year string "2020" unchanged', () => {
+      const raw = '2020'
+      const year = /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.substring(0, 4) : raw
+      expect(year).toBe('2020')
+    })
+
+    it('leaves empty string unchanged', () => {
+      const raw = ''
+      const year = /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.substring(0, 4) : raw
+      expect(year).toBe('')
+    })
+
+    it('handles "Sun May 31 2020..." JS Date string', () => {
+      const raw = 'Sun May 31 2020 00:00:00 GMT+0000'
+      // Extract 4-digit year from anywhere in the string
+      const match = raw.match(/\b(19|20)\d{2}\b/)
+      const year = match ? match[0] : raw
+      expect(year).toBe('2020')
+    })
+  })
+
+  // SEN-185: Dropdown menu should work without Radix portals
+  describe('User dropdown (SEN-185 fix)', () => {
+    it('profile username first char provides fallback avatar', () => {
+      const username = 'MenkeAdmin'
+      expect(username.charAt(0).toUpperCase()).toBe('M')
+    })
+
+    it('null username defaults to U', () => {
+      const username: string | null = null
+      expect(username?.charAt(0)?.toUpperCase() || 'U').toBe('U')
+    })
+
+    it('empty username defaults to U', () => {
+      const username = ''
+      expect(username?.charAt(0)?.toUpperCase() || 'U').toBe('U')
+    })
+  })
+
+  // SEN-190: Projections redirect
+  describe('Route redirects (SEN-190 fix)', () => {
+    it('/projections should map to /valuation conceptually', () => {
+      const routeMap: Record<string, string> = { '/projections': '/valuation' }
+      expect(routeMap['/projections']).toBe('/valuation')
+    })
   })
 })

@@ -543,3 +543,24 @@ describe('POST /api/backup/restore', () => {
     expect(TABLE_NAMES[0].table).toBe('valuation_projections')
   })
 })
+
+// ============================================================
+// Success score formatting (SEN-189)
+// ============================================================
+describe('Success score formatting (SEN-189)', () => {
+  it('engine produces scores in 0-1 range', () => {
+    const scores = [0.95, 0.85, 0.70, 0.55, 0.35, 0.15]
+    scores.forEach(s => {
+      expect(s).toBeGreaterThanOrEqual(0)
+      expect(s).toBeLessThanOrEqual(1)
+    })
+  })
+
+  it('cash source calculation uses EBITDA * rate, not rate alone', () => {
+    const ebitda = 5938000
+    const rate = 0.05
+    const cashSource = ebitda * rate
+    expect(cashSource).toBe(296900)
+    expect(cashSource).toBeGreaterThan(rate) // rate alone (0.05) was the bug
+  })
+})

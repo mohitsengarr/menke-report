@@ -36,7 +36,7 @@ export function Sidebar({ profile }: { profile: Profile | null }) {
   const pathname = usePathname()
 
   return (
-    <aside className="fixed left-0 top-16 bottom-0 w-64 bg-white border-r border-gray-200 overflow-y-auto hidden lg:block z-40">
+    <aside className="fixed left-0 top-16 bottom-0 w-64 bg-white border-r border-gray-200 overflow-y-auto hidden md:block z-40">
       <nav className="p-4 space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon

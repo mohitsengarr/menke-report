@@ -22,7 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <Topbar profile={profile} />
       <div className="flex">
         <Sidebar profile={profile} />
-        <main className="flex-1 p-6 lg:ml-64 mt-16">
+        <main className="flex-1 p-6 md:ml-64 mt-16">
           {children}
         </main>
       </div>

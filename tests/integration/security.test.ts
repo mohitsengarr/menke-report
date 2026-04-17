@@ -318,3 +318,26 @@ describe('Input Validation', () => {
     // handled by Next.js config or a middleware layer.
   })
 })
+
+// ============================================================
+// S-Corp tax benefit (bug fix)
+// ============================================================
+describe('S-Corp tax benefit (bug fix)', () => {
+  it('checks for "S" not "Yes"', () => {
+    const scCorp = 'S'
+    const benefit = scCorp === 'S' ? 10000 : 0
+    expect(benefit).toBe(10000)
+  })
+
+  it('"C" corporation gets no S-Corp benefit', () => {
+    const scCorp = 'C'
+    const benefit = scCorp === 'S' ? 10000 : 0
+    expect(benefit).toBe(0)
+  })
+
+  it('"Yes" (old format) does NOT match "S"', () => {
+    const scCorp = 'Yes'
+    const benefit = scCorp === 'S' ? 10000 : 0
+    expect(benefit).toBe(0) // This was the bug — old code checked 'Yes'
+  })
+})

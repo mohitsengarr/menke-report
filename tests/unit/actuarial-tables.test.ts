@@ -146,3 +146,34 @@ describe('lookupTurnover', () => {
     expect(lookupTurnover('T-5', 80)).toBeCloseTo(0.01, 4)
   })
 })
+
+// ============================================================
+// Edge cases from production data
+// ============================================================
+describe('Edge cases from production data', () => {
+  it('lookupTurnover for T-1 at age 65 returns 0 (retirement age)', () => {
+    // Age 65 in T-1 has zero turnover because they retire, not quit
+    const rate = lookupTurnover('T-1', 65)
+    expect(rate).toBe(0)
+  })
+
+  it('lookupTurnover for T-1 at age 30 returns positive rate', () => {
+    const rate = lookupTurnover('T-1', 30)
+    expect(rate).toBeGreaterThan(0.01) // ~0.02
+    expect(rate).toBeLessThan(0.03)
+  })
+
+  it('lookupMortality age 72 (RMD threshold) returns small positive', () => {
+    const rate = lookupMortality(72, null)
+    expect(rate).toBeGreaterThan(0.01) // ~0.029
+    expect(rate).toBeLessThan(0.04)
+  })
+
+  it('lookupRMDLifeExpectancy age 72 returns 27.4', () => {
+    expect(lookupRMDLifeExpectancy(72)).toBe(27.4)
+  })
+
+  it('lookupRMDLifeExpectancy age 100 returns 6.4', () => {
+    expect(lookupRMDLifeExpectancy(100)).toBe(6.4)
+  })
+})
