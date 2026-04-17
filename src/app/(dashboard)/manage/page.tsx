@@ -25,12 +25,21 @@ export default async function ManagePage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">Data Management</h1>
+          <Link
+            href="/manage/new"
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium bg-menke-navy text-white rounded-md hover:bg-menke-navy-light"
+          >
+            + New Participant
+          </Link>
         </div>
         <ManageActions userId={user.user.id} />
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500 mb-4">No data available. Please upload your Excel data.</p>
-            <Link href="/import" className="text-blue-600 hover:underline font-medium">Go to Import</Link>
+            <p className="text-gray-500 mb-4">No data available. Please upload your Excel data or add a participant manually.</p>
+            <div className="flex justify-center gap-4">
+              <Link href="/import" className="text-blue-600 hover:underline font-medium">Import Excel</Link>
+              <Link href="/manage/new" className="text-blue-600 hover:underline font-medium">Add Participant</Link>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -41,6 +50,12 @@ export default async function ManagePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Data Management</h1>
+        <Link
+          href="/manage/new"
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium bg-menke-navy text-white rounded-md hover:bg-menke-navy-light"
+        >
+          + New Participant
+        </Link>
       </div>
       <ManageActions userId={user.user.id} />
 

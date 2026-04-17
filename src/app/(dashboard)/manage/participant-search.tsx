@@ -45,7 +45,8 @@ export function ParticipantSearch({ rows }: { rows: InputData[] }) {
               <th className="py-2 pr-4 text-right">Plan Comp</th>
               <th className="py-2 pr-4 text-right">Vesting %</th>
               <th className="py-2 pr-4">Term Date</th>
-              <th className="py-2">Reason</th>
+              <th className="py-2 pr-4">Reason</th>
+              <th className="py-2 w-16 text-right">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -64,9 +65,17 @@ export function ParticipantSearch({ rows }: { rows: InputData[] }) {
                 <td className="py-2 pr-4">{r.birth_date ?? '---'}</td>
                 <td className="py-2 pr-4">{r.hire_date ?? '---'}</td>
                 <td className="py-2 pr-4 text-right">${r.plan_comp.toLocaleString()}</td>
-                <td className="py-2 pr-4 text-right">{Number(r.vesting_pct).toFixed(0)}%</td>
+                <td className="py-2 pr-4 text-right">{(Number(r.vesting_pct) * 100).toFixed(0)}%</td>
                 <td className="py-2 pr-4">{r.term_date ?? '---'}</td>
-                <td className="py-2">{r.reason ?? '---'}</td>
+                <td className="py-2 pr-4">{r.reason ?? '---'}</td>
+                <td className="py-2 text-right">
+                  <Link
+                    href={`/manage/${r.row_number}`}
+                    className="inline-flex items-center px-2 py-1 text-xs font-medium bg-menke-navy text-white rounded hover:bg-menke-navy-light"
+                  >
+                    Edit
+                  </Link>
+                </td>
               </tr>
             ))}
           </tbody>
