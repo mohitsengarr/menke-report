@@ -7,6 +7,9 @@ import { CHART_COLORS } from '@/lib/chart-colors'
 import type { RepurchaseObligation, ShareTurnoverSchedule } from '@/lib/types/database'
 
 const fmtDollar = (v: number) => `$${(v / 1_000_000).toFixed(1)}M`
+const fmtDollarFull = (v: number) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+const fmtPrice = (v: number) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const fmtInt = (v: number) => v.toLocaleString()
 
 export const metadata = { title: 'Repurchase Obligation' }
 
@@ -70,24 +73,46 @@ export default async function RepurchasePage() {
         <CardHeader><CardTitle>Repurchase Obligation Data</CardTitle></CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b text-left text-gray-500">
                   <th className="py-2 pr-4">Year</th>
+                  <th className="py-2 pr-4">Payout Year</th>
+                  <th className="py-2 pr-4 text-right">Share Price</th>
+                  <th className="py-2 pr-4 text-right">ESOP Shares</th>
+                  <th className="py-2 pr-4 text-right">ESOP Valuation</th>
+                  <th className="py-2 pr-4 text-right">OIA Balance</th>
+                  <th className="py-2 pr-4 text-right">Total ESOP Assets</th>
+                  <th className="py-2 pr-4 text-right">Shares Redeemed</th>
+                  <th className="py-2 pr-4 text-right">Diversification</th>
+                  <th className="py-2 pr-4 text-right">Retirement</th>
+                  <th className="py-2 pr-4 text-right">Turnover</th>
                   <th className="py-2 pr-4 text-right">Total RO</th>
-                  <th className="py-2 pr-4 text-right">NPV</th>
-                  <th className="py-2 text-right">Share Price</th>
+                  <th className="py-2 text-right">NPV</th>
                 </tr>
               </thead>
               <tbody>
-                {roRows.map((r) => (
-                  <tr key={r.id} className="border-b last:border-0 hover:bg-gray-50">
-                    <td className="py-2 pr-4 font-medium">{r.year}</td>
-                    <td className="py-2 pr-4 text-right">{fmtDollar(r.total_repurchase_obligation)}</td>
-                    <td className="py-2 pr-4 text-right">{fmtDollar(r.npv)}</td>
-                    <td className="py-2 text-right">${r.share_price.toFixed(2)}</td>
-                  </tr>
-                ))}
+                {roRows.map((r) => {
+                  const esopValuation = r.share_price * r.esop_shares_allocated
+                  const totalEsopAssets = esopValuation + r.oia_balance
+                  return (
+                    <tr key={r.id} className="border-b last:border-0 hover:bg-gray-50">
+                      <td className="py-2 pr-4 font-medium">{r.year}</td>
+                      <td className="py-2 pr-4">{r.calendar_year_for_payout}</td>
+                      <td className="py-2 pr-4 text-right">{fmtPrice(r.share_price)}</td>
+                      <td className="py-2 pr-4 text-right">{fmtInt(r.esop_shares_allocated)}</td>
+                      <td className="py-2 pr-4 text-right">{fmtDollarFull(esopValuation)}</td>
+                      <td className="py-2 pr-4 text-right">{fmtDollarFull(r.oia_balance)}</td>
+                      <td className="py-2 pr-4 text-right">{fmtDollarFull(totalEsopAssets)}</td>
+                      <td className="py-2 pr-4 text-right">{fmtInt(r.esop_shares_redeemed)}</td>
+                      <td className="py-2 pr-4 text-right">{fmtDollarFull(r.diversification)}</td>
+                      <td className="py-2 pr-4 text-right">{fmtDollarFull(r.retirement_death_disability)}</td>
+                      <td className="py-2 pr-4 text-right">{fmtDollarFull(r.turnover)}</td>
+                      <td className="py-2 pr-4 text-right">{fmtDollarFull(r.total_repurchase_obligation)}</td>
+                      <td className="py-2 text-right">{fmtDollarFull(r.npv)}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

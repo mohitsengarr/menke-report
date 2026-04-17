@@ -54,13 +54,18 @@ export default async function PopulationPage() {
         <CardHeader><CardTitle>Population Data</CardTitle></CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b text-left text-gray-500">
                   <th className="py-2 pr-4">Year</th>
                   <th className="py-2 pr-4 text-right">Active Participants</th>
-                  <th className="py-2 pr-4 text-right">Covered Compensation</th>
-                  <th className="py-2 pr-4 text-right">Avg Total Compensation</th>
+                  <th className="py-2 pr-4 text-right">Covered Comp</th>
+                  <th className="py-2 pr-4 text-right">Avg Cash Comp</th>
+                  <th className="py-2 pr-4 text-right">Avg ESOP Comp</th>
+                  <th className="py-2 pr-4 text-right">Avg Total Comp</th>
+                  <th className="py-2 pr-4 text-right">Stock Alloc</th>
+                  <th className="py-2 pr-4 text-right">Cash Contrib</th>
+                  <th className="py-2 pr-4 text-right">Fringe</th>
                   <th className="py-2 pr-4 text-right">Effective Benefit Rate</th>
                   <th className="py-2 text-right">Share Turn</th>
                 </tr>
@@ -71,7 +76,12 @@ export default async function PopulationPage() {
                     <td className="py-2 pr-4 font-medium">{r.year}</td>
                     <td className="py-2 pr-4 text-right">{r.active_participants.toLocaleString()}</td>
                     <td className="py-2 pr-4 text-right">{fmtDollar(r.covered_compensation)}</td>
+                    <td className="py-2 pr-4 text-right">{fmtDollar(r.avg_cash_compensation)}</td>
+                    <td className="py-2 pr-4 text-right">{fmtDollar(r.avg_esop_compensation)}</td>
                     <td className="py-2 pr-4 text-right">{fmtDollar(r.avg_total_compensation)}</td>
+                    <td className="py-2 pr-4 text-right">{fmtDollar(r.stock_allocations)}</td>
+                    <td className="py-2 pr-4 text-right">{fmtDollar(r.cash_contributions)}</td>
+                    <td className="py-2 pr-4 text-right">{fmtDollar(r.fringe)}</td>
                     <td className="py-2 pr-4 text-right">{(r.effective_benefit_rate * 100).toFixed(1)}%</td>
                     <td className="py-2 text-right">{r.share_turn.toLocaleString()}</td>
                   </tr>
