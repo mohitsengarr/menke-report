@@ -29,6 +29,12 @@ function FormField({
   onChange: (key: string, val: string | number) => void
 }) {
   const id = `field-${field.key}`
+  const isPercent = field.suffix === '%' && field.type === 'number'
+  // Percent fields are stored as ratios (0.05) in the DB. UI shows the
+  // human-friendly percent value (5.00). Convert on render and on input.
+  const displayValue = isPercent && typeof value === 'number' && value !== 0
+    ? String((value * 100).toFixed(2)).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1')
+    : (value ?? '')
   return (
     <div className="space-y-1">
       <label htmlFor={id} className="block text-sm font-medium text-gray-700">
@@ -54,19 +60,30 @@ function FormField({
           ))}
         </select>
       ) : (
-        <input
-          id={id}
-          type={field.type ?? 'text'}
-          className={inputCls}
-          placeholder={field.placeholder}
-          value={value ?? ''}
-          onChange={(e) =>
-            onChange(
-              field.key,
-              field.type === 'number' ? Number(e.target.value) : e.target.value,
-            )
-          }
-        />
+        <div className="relative">
+          <input
+            id={id}
+            type={field.type ?? 'text'}
+            step={isPercent ? '0.01' : undefined}
+            className={`${inputCls}${isPercent ? ' pr-8' : ''}`}
+            placeholder={field.placeholder}
+            value={displayValue as string | number}
+            onChange={(e) => {
+              const raw = e.target.value
+              if (field.type === 'number') {
+                const n = Number(raw)
+                // When entering percent values, store as ratio (5 → 0.05)
+                const stored = isPercent ? n / 100 : n
+                onChange(field.key, Number.isFinite(stored) ? stored : 0)
+              } else {
+                onChange(field.key, raw)
+              }
+            }}
+          />
+          {isPercent && (
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">%</span>
+          )}
+        </div>
       )}
     </div>
   )

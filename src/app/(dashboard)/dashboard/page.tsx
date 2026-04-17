@@ -270,6 +270,89 @@ export default async function DashboardPage() {
             </Link>
           </section>
 
+          {/* Executive Summary Highlights — Low/High/Average for key metrics */}
+          {(() => {
+            const roVals = (repurchase ?? []).map((r: any) => Number(r.total_repurchase_obligation) || 0)
+            const nonZero = roVals.filter(v => v > 0)
+            const roLow = nonZero.length ? Math.min(...nonZero) : 0
+            const roHigh = roVals.length ? Math.max(...roVals) : 0
+            const roAvg = roVals.length ? roVals.reduce((a, b) => a + b, 0) / roVals.length : 0
+            const roLowYr = repurchase?.[roVals.indexOf(roLow)]?.calendar_year_for_payout ?? ''
+            const roHighYr = repurchase?.[roVals.indexOf(roHigh)]?.calendar_year_for_payout ?? ''
+
+            const benefitVals = (population ?? []).map((p: any) => Number(p.effective_benefit_rate) || 0)
+            const benefitLow = benefitVals.length ? Math.min(...benefitVals) : 0
+            const benefitHigh = benefitVals.length ? Math.max(...benefitVals) : 0
+            const benefitAvg = benefitVals.length ? benefitVals.reduce((a, b) => a + b, 0) / benefitVals.length : 0
+
+            const compVals = (population ?? []).map((p: any) => Number(p.avg_total_compensation) || 0)
+            const compLow = compVals.length ? Math.min(...compVals) : 0
+            const compHigh = compVals.length ? Math.max(...compVals) : 0
+            const compAvg = compVals.length ? compVals.reduce((a, b) => a + b, 0) / compVals.length : 0
+
+            const priceChanges = (valuations ?? []).map((v: any) => Number(v.share_price_change) || 0)
+            const pcLow = priceChanges.length ? Math.min(...priceChanges) : 0
+            const pcHigh = priceChanges.length ? Math.max(...priceChanges) : 0
+            const pcAvg = priceChanges.length ? priceChanges.reduce((a, b) => a + b, 0) / priceChanges.length : 0
+
+            const scoreVals = (scores ?? []).map((s: any) => {
+              const v = Number(s.esop_success_score) || 0
+              return Math.abs(v) > 1 ? v : v * 100
+            })
+            const scLow = scoreVals.length ? Math.min(...scoreVals) : 0
+            const scHigh = scoreVals.length ? Math.max(...scoreVals) : 0
+            const scAvg = scoreVals.length ? scoreVals.reduce((a, b) => a + b, 0) / scoreVals.length : 0
+
+            const dollar = (n: number) => n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${(n / 1e3).toFixed(1)}K` : `$${n.toFixed(0)}`
+            const pctFmt = (v: number, d = 1) => `${(v * 100).toFixed(d)}%`
+
+            const tiles: Array<{ title: string; low: string; high: string; avg: string }> = [
+              { title: 'Repurchase Obligation Projection',
+                low: `${dollar(roLow)}${roLowYr ? ` (${roLowYr})` : ''}`,
+                high: `${dollar(roHigh)}${roHighYr ? ` (${roHighYr})` : ''}`,
+                avg: dollar(roAvg) },
+              { title: 'Valuation Projection — Share Price Change',
+                low: pctFmt(pcLow, 0), high: pctFmt(pcHigh, 0), avg: pctFmt(pcAvg, 0) },
+              { title: 'Effective ESOP Benefit Rate',
+                low: pctFmt(benefitLow, 2), high: pctFmt(benefitHigh, 2), avg: pctFmt(benefitAvg, 2) },
+              { title: 'Average Total Compensation',
+                low: dollar(compLow), high: dollar(compHigh), avg: dollar(compAvg) },
+              { title: 'ESOP Success Score',
+                low: `${scLow.toFixed(0)}%`, high: `${scHigh.toFixed(0)}%`, avg: `${scAvg.toFixed(1)}%` },
+            ]
+
+            return (
+              <section aria-label="Executive Summary Highlights" className="space-y-4">
+                <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-500">Executive Summary Highlights</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {tiles.map((t) => (
+                    <Card key={t.title}>
+                      <CardHeader className="pb-2">
+                        <h3 className="text-sm font-semibold text-gray-800">{t.title}</h3>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="grid grid-cols-3 gap-3 text-center">
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">Low</p>
+                            <p className="text-lg font-bold text-menke-navy mt-1">{t.low}</p>
+                          </div>
+                          <div className="border-x border-gray-200">
+                            <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">High</p>
+                            <p className="text-lg font-bold text-menke-navy mt-1">{t.high}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">Average</p>
+                            <p className="text-lg font-bold text-menke-navy mt-1">{t.avg}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </section>
+            )
+          })()}
+
           {/* Tables */}
           <section aria-label="Data Tables" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* RO Projection Table */}
