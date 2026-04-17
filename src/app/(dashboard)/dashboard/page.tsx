@@ -98,7 +98,7 @@ export default async function DashboardPage() {
     ? (() => {
         const val = Number(latestPop.share_turn)
         return val > 1 ? val.toFixed(1) : (val * 100).toFixed(2)
-        : (latestPop.share_turn_rate * 100).toFixed(1))
+      })()
     : 'N/A'
 
   return (
