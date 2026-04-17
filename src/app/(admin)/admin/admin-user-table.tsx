@@ -1,80 +1,82 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { Profile } from '@/lib/types/database'
-import { Shield, ShieldOff, UserCheck, UserX, Users } from 'lucide-react'
+import { Shield, ShieldOff, UserCheck, UserX, Users, KeyRound } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function AdminUserTable({ profiles: initialProfiles }: { profiles: Profile[] }) {
   const [profiles, setProfiles] = useState<Profile[]>(initialProfiles)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [resetTarget, setResetTarget] = useState<Profile | null>(null)
 
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text })
     setTimeout(() => setMessage(null), 4000)
   }
 
-  const handleToggleStatus = async (profile: Profile) => {
-    const newStatus = profile.status === 'active' ? 'inactive' : 'active'
-    setActionLoading(`status-${profile.id}`)
+  async function callAdminApi(profile: Profile, body: Record<string, unknown>, loadingKey: string) {
+    setActionLoading(loadingKey)
     try {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('profiles')
-        .update({ status: newStatus })
-        .eq('id', profile.id)
-
-      if (error) throw error
-
-      setProfiles((prev) =>
-        prev.map((p) => (p.id === profile.id ? { ...p, status: newStatus } : p))
-      )
-      showMessage('success', `${profile.username || profile.email} is now ${newStatus}.`)
-    } catch {
-      showMessage('error', 'Failed to update status.')
+      const res = await fetch(`/api/admin/user/${profile.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        showMessage('error', json.message || 'Action failed')
+        return null
+      }
+      showMessage('success', json.message || 'Done')
+      return json
+    } catch (err) {
+      showMessage('error', (err as Error).message)
+      return null
     } finally {
       setActionLoading(null)
+    }
+  }
+
+  const handleToggleStatus = async (profile: Profile) => {
+    const result = await callAdminApi(profile, { action: 'toggle_status' }, `status-${profile.id}`)
+    if (result?.status) {
+      setProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, status: result.status } : p))
     }
   }
 
   const handleToggleRole = async (profile: Profile) => {
-    const newRole = profile.role === 'admin' ? 'member' : 'admin'
-    setActionLoading(`role-${profile.id}`)
-    try {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', profile.id)
-
-      if (error) throw error
-
-      setProfiles((prev) =>
-        prev.map((p) => (p.id === profile.id ? { ...p, role: newRole } : p))
-      )
-      showMessage('success', `${profile.username || profile.email} role changed to ${newRole}.`)
-    } catch {
-      showMessage('error', 'Failed to update role.')
-    } finally {
-      setActionLoading(null)
+    const result = await callAdminApi(profile, { action: 'toggle_role' }, `role-${profile.id}`)
+    if (result?.role) {
+      setProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, role: result.role } : p))
     }
+  }
+
+  const handleResetPassword = async (profile: Profile) => {
+    setResetTarget(null)
+    await callAdminApi(profile, { action: 'reset_password' }, `reset-${profile.id}`)
   }
 
   return (
     <>
-      {message && (
-        <div
-          className={`rounded-lg px-4 py-3 text-sm ${
-            message.type === 'success'
-              ? 'border border-green-200 bg-green-50 text-green-800'
-              : 'border border-red-200 bg-red-50 text-red-800'
-          }`}
-        >
-          {message.text}
-        </div>
-      )}
+      <AnimatePresence>
+        {message && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className={`rounded-lg px-4 py-3 text-sm ${
+              message.type === 'success'
+                ? 'border border-green-200 bg-green-50 text-green-800'
+                : 'border border-red-200 bg-red-50 text-red-800'
+            }`}
+          >
+            {message.text}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Card>
         <CardHeader>
@@ -133,8 +135,9 @@ export default function AdminUserTable({ profiles: initialProfiles }: { profiles
                         )}
                       </td>
                       <td className="py-3 px-2">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-2 flex-wrap">
                           <button
+                            type="button"
                             onClick={() => handleToggleStatus(profile)}
                             disabled={actionLoading === `status-${profile.id}`}
                             className={`inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
@@ -157,6 +160,7 @@ export default function AdminUserTable({ profiles: initialProfiles }: { profiles
                             )}
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleToggleRole(profile)}
                             disabled={actionLoading === `role-${profile.id}`}
                             className={`inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
@@ -178,6 +182,16 @@ export default function AdminUserTable({ profiles: initialProfiles }: { profiles
                               </>
                             )}
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => setResetTarget(profile)}
+                            disabled={actionLoading === `reset-${profile.id}`}
+                            className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                            title="Send password-reset email"
+                          >
+                            <KeyRound className="h-3 w-3" />
+                            Reset Password
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -188,6 +202,51 @@ export default function AdminUserTable({ profiles: initialProfiles }: { profiles
           )}
         </CardContent>
       </Card>
+
+      {/* Reset password confirmation */}
+      <AnimatePresence>
+        {resetTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+            onClick={() => setResetTarget(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 10 }}
+              className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
+              onClick={e => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+            >
+              <h3 className="text-lg font-semibold text-menke-navy">Send password-reset email?</h3>
+              <p className="mt-2 text-sm text-gray-600">
+                A password-reset link will be sent to <strong>{resetTarget.email}</strong>.
+                The user must click the link to choose a new password.
+              </p>
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setResetTarget(null)}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleResetPassword(resetTarget)}
+                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Send email
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }
