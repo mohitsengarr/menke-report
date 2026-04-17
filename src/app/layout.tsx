@@ -18,6 +18,9 @@ export const metadata: Metadata = {
     template: '%s | MenkeReport',
   },
   description: 'ESOP Repurchase Obligation Analytics Platform by Menke & Associates',
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({

@@ -82,8 +82,7 @@ export default function RegisterPage() {
         transition={{ duration: 0.6, delay: 0.1 }}
         className="text-center mb-8"
       >
-        <h1 className="text-3xl font-bold text-menke-navy">MENKE</h1>
-        <p className="text-sm text-gray-500 tracking-widest">ESOP ADVISORS SINCE 1974</p>
+        <img src="/menke-logo-full.jpeg" alt="Menke & Associates - ESOP Advisors Since 1974" className="h-24 mx-auto" />
       </motion.div>
 
       <motion.div

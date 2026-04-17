@@ -54,8 +54,7 @@ export function Topbar({ profile }: { profile: Profile | null }) {
             </svg>
           </button>
           <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="text-xl font-bold text-menke-navy">MENKE</span>
-            <span className="hidden sm:inline text-xs text-gray-400 border-l pl-2 ml-1">ESOP ADVISORS SINCE 1974</span>
+            <img src="/menke-logo.png" alt="Menke & Associates" className="h-8 sm:h-9" />
           </Link>
         </div>
 
