@@ -15,9 +15,11 @@ export default async function AverageAgeTenureActivePage() {
     .from('average_age_tenure_active')
     .select('*')
     .eq('user_id', user.user.id)
-    .order('category')
 
   const rows = (data ?? []) as AverageAgeTenureActive[]
+  // Natural order: All first, then by service-year bucket
+  const ORDER = ['All', '0-5 years', '5-10 years', '10-15 years', '15-20 years', '20+ years']
+  rows.sort((a, b) => ORDER.indexOf(a.category) - ORDER.indexOf(b.category))
 
   if (rows.length === 0) {
     return (
@@ -33,12 +35,19 @@ export default async function AverageAgeTenureActivePage() {
     )
   }
 
-  const totals = {
-    count: rows.reduce((s, r) => s + r.count, 0),
-    avgAge: rows.reduce((s, r) => s + r.avg_age * r.count, 0) / rows.reduce((s, r) => s + r.count, 0),
-    avgTenure: rows.reduce((s, r) => s + r.avg_tenure * r.count, 0) / rows.reduce((s, r) => s + r.count, 0),
-    avgBalance: rows.reduce((s, r) => s + r.avg_balance * r.count, 0) / rows.reduce((s, r) => s + r.count, 0),
-  }
+  // Prefer the "All" aggregate if present (engine emits it); otherwise compute weighted totals
+  // excluding the "All" bucket to avoid double-counting.
+  const allRow = rows.find(r => r.category === 'All')
+  const bucketed = rows.filter(r => r.category !== 'All')
+  const totalCount = bucketed.reduce((s, r) => s + r.count, 0)
+  const totals = allRow
+    ? { count: allRow.count, avgAge: allRow.avg_age, avgTenure: allRow.avg_tenure, avgBalance: allRow.avg_balance }
+    : {
+        count: totalCount,
+        avgAge: totalCount > 0 ? bucketed.reduce((s, r) => s + r.avg_age * r.count, 0) / totalCount : 0,
+        avgTenure: totalCount > 0 ? bucketed.reduce((s, r) => s + r.avg_tenure * r.count, 0) / totalCount : 0,
+        avgBalance: totalCount > 0 ? bucketed.reduce((s, r) => s + r.avg_balance * r.count, 0) / totalCount : 0,
+      }
 
   return (
     <div className="space-y-6">

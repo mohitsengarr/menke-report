@@ -7,15 +7,24 @@ import { FileText, Presentation, Eye, Loader2 } from 'lucide-react'
 export default function ReportPage() {
   const [title, setTitle] = useState('ESOP Repurchase Obligation Analysis')
   const [subtitle, setSubtitle] = useState('')
-  const [reportDate, setReportDate] = useState(
-    new Date().toISOString().split('T')[0]
-  )
+  const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0])
   const [executiveSummary, setExecutiveSummary] = useState('')
+
+  // Narrative plan-design fields (legacy ReportModel.cs parity)
+  const [planStage, setPlanStage] = useState('')
+  const [fundingApproach, setFundingApproach] = useState('Redemption + recycling')
+  const [contributionSource, setContributionSource] = useState('Operating cash flow')
+
   const [pdfLoading, setPdfLoading] = useState(false)
   const [pptxLoading, setPptxLoading] = useState(false)
 
   const inputCls =
     'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+
+  const payload = () => ({
+    title, subtitle, reportDate, executiveSummary,
+    planStage, fundingApproach, contributionSource,
+  })
 
   async function handleGeneratePDF() {
     setPdfLoading(true)
@@ -23,14 +32,13 @@ export default function ReportPage() {
       const res = await fetch('/api/report/pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, subtitle, reportDate, executiveSummary }),
+        body: JSON.stringify(payload()),
       })
       if (!res.ok) throw new Error('PDF generation failed')
       const html = await res.text()
       const blob = new Blob([html], { type: 'text/html' })
       const url = URL.createObjectURL(blob)
       window.open(url, '_blank')
-      // Clean up after a short delay to allow the new tab to load
       setTimeout(() => URL.revokeObjectURL(url), 5000)
     } catch {
       alert('Failed to generate PDF report. Please try again.')
@@ -45,7 +53,7 @@ export default function ReportPage() {
       const res = await fetch('/api/report/pptx', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, subtitle }),
+        body: JSON.stringify(payload()),
       })
       if (!res.ok) throw new Error('PPTX generation failed')
       const blob = await res.blob()
@@ -125,10 +133,60 @@ export default function ReportPage() {
                 className={`${inputCls} min-h-[120px] resize-y`}
                 value={executiveSummary}
                 onChange={(e) => setExecutiveSummary(e.target.value)}
-                placeholder="Enter the executive summary for your report..."
+                placeholder="Narrative summary — defaults to an auto-generated paragraph if left blank."
                 rows={5}
               />
+              <p className="text-[11px] text-gray-400">
+                Leave blank to use the default summary for the report&apos;s Executive Summary section.
+              </p>
             </div>
+
+            {/* Narrative plan-design fields */}
+            <details className="rounded-lg border border-gray-200 bg-gray-50/40 p-3">
+              <summary className="text-sm font-medium text-menke-navy cursor-pointer">
+                Plan Narrative (optional)
+              </summary>
+              <div className="mt-3 space-y-3">
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-gray-700">Plan Stage</label>
+                  <select
+                    className={inputCls}
+                    value={planStage}
+                    onChange={(e) => setPlanStage(e.target.value)}
+                  >
+                    <option value="">Auto-detect from valuation</option>
+                    <option>Early stage</option>
+                    <option>Mid stage</option>
+                    <option>Growth stage</option>
+                    <option>Mature / Late stage</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-gray-700">Funding Approach</label>
+                  <select
+                    className={inputCls}
+                    value={fundingApproach}
+                    onChange={(e) => setFundingApproach(e.target.value)}
+                  >
+                    <option>Redemption + recycling</option>
+                    <option>Redemption only</option>
+                    <option>Recycling only</option>
+                    <option>OIA-funded</option>
+                    <option>Mixed / S-Corp distributions</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-gray-700">Contribution Source</label>
+                  <input
+                    type="text"
+                    className={inputCls}
+                    value={contributionSource}
+                    onChange={(e) => setContributionSource(e.target.value)}
+                    placeholder="Operating cash flow / dividends / refinancing / etc."
+                  />
+                </div>
+              </div>
+            </details>
 
             <div className="flex flex-wrap gap-3 pt-2">
               <button
@@ -162,15 +220,13 @@ export default function ReportPage() {
           <CardContent>
             <div className="rounded-lg border border-gray-200 bg-white shadow-inner">
               {/* Mock cover page */}
-              <div className="flex flex-col items-center justify-center p-8 min-h-[400px] text-center space-y-6">
+              <div className="flex flex-col items-center justify-center p-8 min-h-[360px] text-center space-y-6">
                 <div className="w-16 h-1 bg-menke-navy rounded-full" />
                 <div>
                   <h2 className="text-xl font-bold text-menke-navy leading-tight">
                     {title || 'Untitled Report'}
                   </h2>
-                  {subtitle && (
-                    <p className="text-sm text-gray-500 mt-2">{subtitle}</p>
-                  )}
+                  {subtitle && <p className="text-sm text-gray-500 mt-2">{subtitle}</p>}
                 </div>
                 <div className="w-12 h-px bg-gray-300" />
                 <div className="space-y-1">
@@ -180,9 +236,7 @@ export default function ReportPage() {
                 {reportDate && (
                   <p className="text-xs text-gray-400">
                     {new Date(reportDate + 'T00:00:00').toLocaleDateString('en-US', {
-                      month: 'long',
-                      day: 'numeric',
-                      year: 'numeric',
+                      month: 'long', day: 'numeric', year: 'numeric',
                     })}
                   </p>
                 )}
@@ -198,11 +252,26 @@ export default function ReportPage() {
                 )}
               </div>
 
-              {/* Sections indicator */}
-              <div className="border-t border-gray-100 px-6 py-4 bg-gray-50 rounded-b-lg">
-                <p className="text-xs text-gray-400 text-center">
-                  Report includes: Valuation, Repurchase Obligation, Share Turnover,
-                  Population Analysis, Success Score, and Age/Tenure data.
+              {/* Report sections list */}
+              <div className="border-t border-gray-100 px-6 py-4 bg-gray-50 rounded-b-lg space-y-2">
+                <p className="text-xs font-semibold text-menke-navy uppercase tracking-wider">
+                  Report Contents
+                </p>
+                <ul className="text-[11px] text-gray-600 space-y-1 list-disc list-inside">
+                  <li>Cover + Executive Summary with KPI tiles</li>
+                  <li>Plan Stage, Funding Approach, Contribution Source narrative</li>
+                  <li>Capital Table &amp; Valuation — line charts (ESOP Valuation, Share Price) + data table</li>
+                  <li>Repurchase Obligation — line chart, driver pie chart, data table</li>
+                  <li>Share Turnover Schedule — stacked bar chart + data table</li>
+                  <li>Population &amp; Benefits — bar chart, Effective Benefit Rate line + data table</li>
+                  <li>ESOP Success Score — trend chart + narrative commentary</li>
+                  <li>Actuarial Assumptions &amp; Plan Design (diversification, turnover, mortality, RMD, salary increase)</li>
+                  <li>Participation, Eligibility &amp; Allocations narrative</li>
+                  <li>Average Age &amp; Tenure</li>
+                  <li>Disclaimer &amp; Footer</li>
+                </ul>
+                <p className="text-[10px] text-gray-400 italic pt-1">
+                  PDF opens in a new tab with a print dialog for save-as-PDF. PPTX downloads directly.
                 </p>
               </div>
             </div>

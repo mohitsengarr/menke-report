@@ -13,10 +13,11 @@ import type { Profile } from '@/lib/types/database'
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   // SEN-203: label now matches destination page title ("Capital Table & Valuation")
+  // Fix: child hrefs were swapped — /repurchase is the RO page, /repurchase/share-turnover is the turnover page.
   { label: 'Valuation', href: '/valuation', icon: TrendingUp, children: [
     { label: 'Capital Table & Valuation', href: '/valuation' },
-    { label: 'Share Turnover Schedule', href: '/repurchase' },
-    { label: 'Repurchase Obligation', href: '/repurchase/share-turnover' },
+    { label: 'Repurchase Obligation', href: '/repurchase' },
+    { label: 'Share Turnover Schedule', href: '/repurchase/share-turnover' },
   ]},
   { label: 'Population', href: '/population', icon: Users, children: [
     { label: 'Population Analysis', href: '/population' },

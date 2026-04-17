@@ -155,6 +155,7 @@ export async function POST() {
   const analyticalTables = [
     'valuation_projections', 'repurchase_obligations', 'share_turnover_schedules',
     'population_analyses', 'success_scores',
+    'average_age_tenure_active', 'average_age_tenure_terminated',
   ]
   for (const t of analyticalTables) {
     await supabase.from(t).delete().eq('user_id', userId)
@@ -169,16 +170,38 @@ export async function POST() {
   const st = engineOutput.shareTurnover.map(r => ({ user_id: userId, ...toDb(r) }))
   const pa = engineOutput.populationAnalysis.map(r => ({ user_id: userId, ...toDb(r) }))
   const ss = engineOutput.successScores.map(r => ({ user_id: userId, ...toDb(r) }))
+  const ata = engineOutput.ageTenureActive.map(r => ({
+    user_id: userId,
+    category: r.category,
+    count: r.count,
+    avg_age: r.avgAge,
+    avg_tenure: r.avgTenure,
+    avg_balance: r.avgBalance,
+  }))
+  const att = engineOutput.ageTenureTerminated.map(r => ({
+    user_id: userId,
+    category: r.category,
+    count: r.count,
+    avg_age: r.avgAge,
+    avg_tenure: r.avgTenure,
+    avg_balance: r.avgBalance,
+  }))
 
-  const [{ error: vpErr }, { error: roErr }, { error: stErr }, { error: paErr }, { error: ssErr }] = await Promise.all([
+  const [
+    { error: vpErr }, { error: roErr }, { error: stErr },
+    { error: paErr }, { error: ssErr },
+    { error: ataErr }, { error: attErr },
+  ] = await Promise.all([
     supabase.from('valuation_projections').insert(vp),
     supabase.from('repurchase_obligations').insert(ro),
     supabase.from('share_turnover_schedules').insert(st),
     supabase.from('population_analyses').insert(pa),
     supabase.from('success_scores').insert(ss),
+    ata.length > 0 ? supabase.from('average_age_tenure_active').insert(ata) : Promise.resolve({ error: null }),
+    att.length > 0 ? supabase.from('average_age_tenure_terminated').insert(att) : Promise.resolve({ error: null }),
   ])
 
-  const errors = [vpErr, roErr, stErr, paErr, ssErr].filter(Boolean)
+  const errors = [vpErr, roErr, stErr, paErr, ssErr, ataErr, attErr].filter(Boolean)
   if (errors.length > 0) {
     return NextResponse.json({
       success: false,

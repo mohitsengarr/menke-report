@@ -176,9 +176,13 @@ export async function processExcelWorkbook(userId: string, fileBuffer: Buffer) {
   const valuationProjections = engineOutput.valuationProjections ?? []
   const successScores = engineOutput.successScores ?? []
 
-  // Extract pre-computed aging data from Excel (only available in full-workbook uploads)
-  const avgAgeTenureActive = isSingleTab ? [] : extractAgeTenureActive(ws1!)
-  const avgAgeTenureTerminated = isSingleTab ? [] : extractAgeTenureBalance(ws1!)
+  // Avg Age & Tenure now comes from the formula engine (ageTenureActive /
+  // ageTenureTerminated) so both single-tab and full-tab uploads populate
+  // the tables consistently. The old Excel extractors (extractAgeTenureActive /
+  // extractAgeTenureBalance) are kept for backward compatibility but no
+  // longer wired — the engine output is the source of truth.
+  const avgAgeTenureActive = engineOutput.ageTenureActive ?? []
+  const avgAgeTenureTerminated = engineOutput.ageTenureTerminated ?? []
 
   // ──────────────────────────────────────────
   // 4. Upsert everything to Supabase
@@ -302,11 +306,26 @@ export async function processExcelWorkbook(userId: string, fileBuffer: Buffer) {
       key_takeaway: r.keyTakeaway,
     })))
   }
+  // Avg Age & Tenure — map engine camelCase to DB snake_case.
   if (avgAgeTenureActive.length > 0) {
-    await supabase.from('average_age_tenure_active').insert(avgAgeTenureActive.map(r => ({ ...r, user_id: userId })))
+    await supabase.from('average_age_tenure_active').insert(avgAgeTenureActive.map(r => ({
+      user_id: userId,
+      category: r.category,
+      count: r.count,
+      avg_age: r.avgAge,
+      avg_tenure: r.avgTenure,
+      avg_balance: r.avgBalance,
+    })))
   }
   if (avgAgeTenureTerminated.length > 0) {
-    await supabase.from('average_age_tenure_terminated').insert(avgAgeTenureTerminated.map(r => ({ ...r, user_id: userId })))
+    await supabase.from('average_age_tenure_terminated').insert(avgAgeTenureTerminated.map(r => ({
+      user_id: userId,
+      category: r.category,
+      count: r.count,
+      avg_age: r.avgAge,
+      avg_tenure: r.avgTenure,
+      avg_balance: r.avgBalance,
+    })))
   }
 
   return {

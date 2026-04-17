@@ -11,45 +11,77 @@ import type { Profile } from '@/lib/types/database'
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loadingProfile, setLoadingProfile] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
     async function loadProfile() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-        setProfile(data)
+      try {
+        setLoadingProfile(true)
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError || !user) {
+          setLoadError('You must be signed in to view your profile.')
+          return
+        }
+        const { data, error } = await supabase
+          .from('profiles').select('*').eq('id', user.id).single()
+        if (error || !data) {
+          // Bootstrap a minimal profile so the page still renders something
+          setProfile({
+            id: user.id,
+            username: user.email?.split('@')[0] ?? '',
+            email: user.email ?? '',
+            role: 'member',
+            status: 'active',
+            avatar_url: null,
+            company_name: null,
+            inc_rate: 0,
+            last_updated_at: null,
+            created_at: new Date().toISOString(),
+          } as Profile)
+        } else {
+          setProfile(data)
+        }
+      } catch (err) {
+        setLoadError((err as Error).message)
+      } finally {
+        setLoadingProfile(false)
       }
     }
     loadProfile()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!profile) return
-    setLoading(true)
+    setSaving(true)
     setMessage(null)
 
     const { error } = await supabase
       .from('profiles')
-      .update({ username: profile.username, company_name: profile.company_name })
+      .update({
+        username: profile.username ?? '',
+        company_name: profile.company_name ?? null,
+      })
       .eq('id', profile.id)
 
     if (error) {
-      setMessage({ type: 'error', text: 'Failed to update profile.' })
+      setMessage({ type: 'error', text: error.message || 'Failed to update profile.' })
     } else {
       setMessage({ type: 'success', text: 'Profile updated successfully.' })
     }
-    setLoading(false)
+    setSaving(false)
   }
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !profile) return
 
-    const fileExt = file.name.split('.').pop()
+    const fileExt = file.name.split('.').pop() ?? 'png'
     const filePath = `${profile.id}/avatar.${fileExt}`
 
     const { error: uploadError } = await supabase.storage
@@ -57,18 +89,45 @@ export default function ProfilePage() {
       .upload(filePath, file, { upsert: true })
 
     if (uploadError) {
-      setMessage({ type: 'error', text: 'Failed to upload avatar.' })
+      setMessage({ type: 'error', text: uploadError.message || 'Failed to upload avatar.' })
       return
     }
 
     const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath)
 
-    await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', profile.id)
+    const { error: updateErr } = await supabase
+      .from('profiles').update({ avatar_url: publicUrl }).eq('id', profile.id)
+    if (updateErr) {
+      setMessage({ type: 'error', text: updateErr.message })
+      return
+    }
     setProfile({ ...profile, avatar_url: publicUrl })
     setMessage({ type: 'success', text: 'Avatar updated.' })
   }
 
-  if (!profile) return <div className="p-6">Loading...</div>
+  // Null-safe initial for the avatar fallback (Bug fix: username could be null/empty)
+  const avatarInitial = (profile?.username?.trim() || profile?.email?.trim() || '?')
+    .charAt(0).toUpperCase()
+
+  if (loadingProfile) {
+    return (
+      <div className="max-w-2xl space-y-6">
+        <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
+        <Card><CardContent className="py-8 text-center text-sm text-gray-500">Loading your profile…</CardContent></Card>
+      </div>
+    )
+  }
+
+  if (loadError || !profile) {
+    return (
+      <div className="max-w-2xl space-y-6">
+        <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
+        <Card><CardContent className="py-8 text-sm text-red-700">
+          {loadError || 'Unable to load profile. Please sign out and back in.'}
+        </CardContent></Card>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -89,7 +148,7 @@ export default function ProfilePage() {
             <Avatar className="h-20 w-20">
               <AvatarImage src={profile.avatar_url || undefined} />
               <AvatarFallback className="bg-menke-navy text-white text-2xl">
-                {profile.username.charAt(0).toUpperCase()}
+                {avatarInitial}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -104,23 +163,31 @@ export default function ProfilePage() {
           <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div className="space-y-2">
               <Label>Username</Label>
-              <Input value={profile.username} onChange={(e) => setProfile({ ...profile, username: e.target.value })} />
+              <Input
+                value={profile.username ?? ''}
+                onChange={(e) => setProfile({ ...profile, username: e.target.value })}
+                placeholder="Enter username"
+              />
             </div>
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input value={profile.email} disabled className="bg-gray-50" />
+              <Input value={profile.email ?? ''} disabled className="bg-gray-50" />
               <p className="text-xs text-gray-400">Email cannot be changed.</p>
             </div>
             <div className="space-y-2">
               <Label>Company Name</Label>
-              <Input value={profile.company_name || ''} onChange={(e) => setProfile({ ...profile, company_name: e.target.value })} placeholder="Enter company name" />
+              <Input
+                value={profile.company_name ?? ''}
+                onChange={(e) => setProfile({ ...profile, company_name: e.target.value })}
+                placeholder="Enter company name"
+              />
             </div>
             <div className="space-y-2">
               <Label>Role</Label>
-              <Input value={profile.role} disabled className="bg-gray-50 capitalize" />
+              <Input value={profile.role ?? 'member'} disabled className="bg-gray-50 capitalize" />
             </div>
-            <Button type="submit" className="bg-menke-navy hover:bg-menke-navy-light" disabled={loading}>
-              {loading ? 'Saving...' : 'Save Changes'}
+            <Button type="submit" className="bg-menke-navy hover:bg-menke-navy-light" disabled={saving}>
+              {saving ? 'Saving...' : 'Save Changes'}
             </Button>
           </form>
         </CardContent>
