@@ -3,24 +3,32 @@ import { createClient } from '@/lib/supabase/server'
 import { runFormulaEngine, type ParticipantInput, type PlanSettings } from '@/lib/formulas/engine'
 
 /**
- * Processes an uploaded ESOP Excel workbook:
- * 1. Opens the workbook from Supabase Storage
- * 2. Reads all 3 worksheets
- * 3. Extracts participant data, settings, and analytical outputs
- * 4. Stores everything in Supabase tables
+ * Processes an uploaded ESOP Excel workbook. Supports two formats:
+ *
+ * 1. Full workbook (3+ worksheets) — RO10 Workbook Input + RO Tab Input and Output
+ *    + 10 Year Score Input and Output. Extracts participants + settings.
+ *
+ * 2. Single-tab workbook (1 worksheet) — participant census only.
+ *    Uses existing user settings from the database (or defaults if none exist).
+ *
+ * In both cases the TypeScript formula engine computes all analytical outputs
+ * (valuation projections, repurchase obligations, population analysis, etc.)
+ * from the raw participant data and plan settings.
  */
 export async function processExcelWorkbook(userId: string, fileBuffer: Buffer) {
   const supabase = await createClient()
   const workbook = new ExcelJS.Workbook()
   await workbook.xlsx.load(fileBuffer as unknown as ArrayBuffer)
 
-  const ws0 = workbook.worksheets[0] // RO10 Workbook Input
-  const ws1 = workbook.worksheets[1] // RO Tab Input and Output
-  const ws2 = workbook.worksheets[2] // 10 Year Score Input and Output
+  const ws0 = workbook.worksheets[0] // Participant census (required)
+  const ws1 = workbook.worksheets[1] // Plan settings (optional)
+  const ws2 = workbook.worksheets[2] // Pre-computed outputs (optional, we recompute anyway)
 
-  if (!ws0 || !ws1 || !ws2) {
-    throw new Error('Workbook must have at least 3 worksheets')
+  if (!ws0) {
+    throw new Error('Workbook must contain at least one worksheet with participant data')
   }
+
+  const isSingleTab = !ws1
 
   // Extract company name from A1
   const companyName = String(ws0.getCell('A1').value || '')
@@ -30,15 +38,39 @@ export async function processExcelWorkbook(userId: string, fileBuffer: Buffer) {
   // ──────────────────────────────────────────
   const participants = extractParticipants(ws0)
 
+  if (participants.length === 0) {
+    throw new Error('No participant data found. Ensure the first worksheet has participant records starting at row 9.')
+  }
+
   // ──────────────────────────────────────────
-  // 2. Extract settings from ws1
+  // 2. Extract settings from ws1 OR load existing settings from DB
   // ──────────────────────────────────────────
-  const provisions = extractProvisions(ws1)
-  const allocations = extractAllocations(ws1)
-  const distributions = extractDistributions(ws1)
-  const funding = extractFunding(ws1)
-  const valuationInputs = extractValuationInputs(ws1)
-  const beginningPrices = extractBeginningPrices(ws1)
+  let provisions, allocations, distributions, funding, valuationInputs, beginningPrices
+
+  if (isSingleTab) {
+    // Single-tab upload: load existing settings from DB, or use defaults
+    const [p, a, d, f, v, b] = await Promise.all([
+      supabase.from('plan_provisions').select('*').eq('user_id', userId).maybeSingle(),
+      supabase.from('allocations').select('*').eq('user_id', userId).maybeSingle(),
+      supabase.from('distributions').select('*').eq('user_id', userId).maybeSingle(),
+      supabase.from('funding').select('*').eq('user_id', userId).maybeSingle(),
+      supabase.from('valuation_inputs').select('*').eq('user_id', userId).maybeSingle(),
+      supabase.from('beginning_share_prices').select('*').eq('user_id', userId).maybeSingle(),
+    ])
+    provisions = p.data ?? getDefaultProvisions()
+    allocations = a.data ?? getDefaultAllocations()
+    distributions = d.data ?? getDefaultDistributions()
+    funding = f.data ?? getDefaultFunding()
+    valuationInputs = v.data ?? getDefaultValuationInputs()
+    beginningPrices = b.data ?? getDefaultBeginningPrices()
+  } else {
+    provisions = extractProvisions(ws1!)
+    allocations = extractAllocations(ws1!)
+    distributions = extractDistributions(ws1!)
+    funding = extractFunding(ws1!)
+    valuationInputs = extractValuationInputs(ws1!)
+    beginningPrices = extractBeginningPrices(ws1!)
+  }
 
   // ──────────────────────────────────────────
   // 3. Run TypeScript Formula Engine (replaces Excel formula computation)
@@ -131,9 +163,9 @@ export async function processExcelWorkbook(userId: string, fileBuffer: Buffer) {
   const valuationProjections = engineOutput.valuationProjections ?? []
   const successScores = engineOutput.successScores ?? []
 
-  // Extract pre-computed aging data from Excel (these are display-only, not formula-dependent)
-  const avgAgeTenureActive = extractAgeTenureActive(ws1)
-  const avgAgeTenureTerminated = extractAgeTenureBalance(ws1)
+  // Extract pre-computed aging data from Excel (only available in full-workbook uploads)
+  const avgAgeTenureActive = isSingleTab ? [] : extractAgeTenureActive(ws1!)
+  const avgAgeTenureTerminated = isSingleTab ? [] : extractAgeTenureBalance(ws1!)
 
   // ──────────────────────────────────────────
   // 4. Upsert everything to Supabase
@@ -146,14 +178,23 @@ export async function processExcelWorkbook(userId: string, fileBuffer: Buffer) {
     inc_rate: 0,
   }).eq('id', userId)
 
-  // Delete existing data for this user (fresh import)
-  const tables = ['input_data', 'plan_provisions', 'allocations', 'distributions',
-    'funding', 'valuation_inputs', 'beginning_share_prices',
+  // Delete analytical data (always recomputed). For single-tab uploads we preserve
+  // existing plan settings in the DB so the user doesn't lose configuration.
+  const analyticalTables = ['input_data',
     'valuation_projections', 'repurchase_obligations', 'share_turnover_schedules',
     'population_analyses', 'success_scores', 'average_age_tenure_active',
     'average_age_tenure_terminated']
-  for (const table of tables) {
+  for (const table of analyticalTables) {
     await supabase.from(table).delete().eq('user_id', userId)
+  }
+
+  if (!isSingleTab) {
+    // Full-workbook upload: replace settings with values from Excel
+    const settingsTables = ['plan_provisions', 'allocations', 'distributions',
+      'funding', 'valuation_inputs', 'beginning_share_prices']
+    for (const table of settingsTables) {
+      await supabase.from(table).delete().eq('user_id', userId)
+    }
   }
 
   // Insert participant data (batch in chunks of 100)
@@ -164,13 +205,23 @@ export async function processExcelWorkbook(userId: string, fileBuffer: Buffer) {
     }
   }
 
-  // Insert settings
-  await supabase.from('plan_provisions').insert({ ...provisions, user_id: userId })
-  await supabase.from('allocations').insert({ ...allocations, user_id: userId })
-  await supabase.from('distributions').insert({ ...distributions, user_id: userId })
-  await supabase.from('funding').insert({ ...funding, user_id: userId })
-  await supabase.from('valuation_inputs').insert({ ...valuationInputs, user_id: userId })
-  await supabase.from('beginning_share_prices').insert({ ...beginningPrices, user_id: userId })
+  // Insert settings only for full-workbook upload (single-tab preserves existing settings)
+  if (!isSingleTab) {
+    // Strip database-only fields (id, user_id, updated_at) before inserting
+    const cleanSettings = <T extends Record<string, unknown>>(obj: T) => {
+      const copy = { ...obj } as Record<string, unknown>
+      delete copy.id
+      delete copy.user_id
+      delete copy.updated_at
+      return copy
+    }
+    await supabase.from('plan_provisions').insert({ ...cleanSettings(provisions), user_id: userId })
+    await supabase.from('allocations').insert({ ...cleanSettings(allocations), user_id: userId })
+    await supabase.from('distributions').insert({ ...cleanSettings(distributions), user_id: userId })
+    await supabase.from('funding').insert({ ...cleanSettings(funding), user_id: userId })
+    await supabase.from('valuation_inputs').insert({ ...cleanSettings(valuationInputs), user_id: userId })
+    await supabase.from('beginning_share_prices').insert({ ...cleanSettings(beginningPrices), user_id: userId })
+  }
 
   // Insert analytical data — map camelCase engine output to snake_case DB columns
   if (valuationProjections.length > 0) {
@@ -245,6 +296,109 @@ export async function processExcelWorkbook(userId: string, fileBuffer: Buffer) {
   return {
     participantCount: participants.length,
     companyName,
+    uploadType: isSingleTab ? 'single-tab' : 'full-workbook',
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// Default Settings (used when single-tab upload has no existing DB settings)
+// ══════════════════════════════════════════════════════
+
+function getDefaultProvisions() {
+  return {
+    compensation_limit: 360000,
+    compensation_limit_increase: 0.05,
+    period_years: 5,
+    distribution_years: 5,
+    plan_retirement: 65,
+    service_retirement: 5,
+    compensation_one_year: 0.05,
+    compensation_five_year: 0.05,
+    compensation_ten_year: 0.05,
+    turnover_five_year: 'T-1',
+    turnover_ten_year: 'T-1',
+  }
+}
+
+function getDefaultAllocations() {
+  return {
+    plan_size: 'Medium',
+    service_hours: 1000,
+    lump_sum_distribution_limit: 7000,
+    distribution_years: 1,
+    end_requirement: 'Yes',
+    one_requirement: 'Yes',
+    internal_loan_1: 0,
+    internal_loan_1_date: null as string | null,
+    internal_loan_2: 0,
+    internal_loan_2_date: null as string | null,
+    internal_loan_3: 0,
+    internal_loan_3_date: null as string | null,
+    vesting_period: 6,
+    internal_loan_basis: 0,
+    oia_annual_return: 0.04,
+    annual_esop_contribution: 0,
+    segregation: 'No',
+  }
+}
+
+function getDefaultDistributions() {
+  return {
+    in_service_distrib_1_age: 0,
+    in_service_distrib_1_amount: 0,
+    in_service_distrib_2_frequency: 0,
+    in_service_distrib_2_amount: 0,
+    esop_formation_date: '2020',
+    divers_year_one: 0.25,
+    divers_year_two: 0.25,
+    divers_year_three: 0.25,
+    divers_year_four: 0.25,
+    divers_year_five: 0.25,
+    divers_year_final: 0.50,
+    sc_corporation: 'C',
+  }
+}
+
+function getDefaultFunding() {
+  return {
+    stub_period: 0,
+    funding_mechanism: 'Redeem',
+    s_corp_distributions: 0,
+    plan_active_frozen: 'Active',
+    plan_year_end: '2024-12-31' as string | null,
+  }
+}
+
+function getDefaultValuationInputs() {
+  return {
+    company_esop_value: 1000000,
+    total_shares_outstanding: 1000,
+    total_esop_shares: 400,
+    ebitda: 1000000,
+    cap_rate: 0.225,
+    dloc: 0,
+    dlom: 0,
+    lt_debt: 0,
+    working_capital: 0,
+    excess_cash_assets: 0,
+    ebitda_growth_rate: 0.05,
+    stage_transaction_year_two: null as string | null,
+    annual_stock_allocation_two: 0,
+    stage_transaction_year_three: null as string | null,
+    annual_stock_allocation_three: 0,
+    total_share_second_stage: 0,
+    total_share_third_stage: 0,
+  }
+}
+
+function getDefaultBeginningPrices() {
+  return {
+    share_price_one: 0.05,
+    share_price_two: 0.05,
+    share_price_three: 0.05,
+    share_price_four: 0.05,
+    share_price_five: 0.05,
+    share_price_ten: 0.05,
   }
 }
 

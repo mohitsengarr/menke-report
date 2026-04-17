@@ -34,9 +34,13 @@ export async function POST(request: Request) {
     // Process the workbook — extract all data and store in Supabase
     const result = await processExcelWorkbook(user.id, buffer)
 
+    const hint = result.uploadType === 'single-tab'
+      ? ' Plan settings were preserved from your previous configuration — review them in Settings if needed.'
+      : ''
+
     return NextResponse.json({
       success: true,
-      message: `Successfully imported ${result.participantCount} participants for ${result.companyName}.`,
+      message: `Successfully imported ${result.participantCount} participants for ${result.companyName}.${hint}`,
       ...result,
     })
   } catch (error: any) {
