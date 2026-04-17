@@ -33,6 +33,7 @@ export default async function DashboardPage() {
   const { data: repurchase } = await supabase.from('repurchase_obligations').select('*').eq('user_id', user!.id).order('year')
   const { data: population } = await supabase.from('population_analyses').select('*').eq('user_id', user!.id).order('year')
   const { data: scores } = await supabase.from('success_scores').select('*').eq('user_id', user!.id).order('year_for_payout')
+  const { data: turnover } = await supabase.from('share_turnover_schedules').select('*').eq('user_id', user!.id)
 
   const yearSort = (a: { year: string }, b: { year: string }) => {
     const yearA = parseInt(a.year.replace(/\D/g, '')) || 0
@@ -71,6 +72,32 @@ export default async function DashboardPage() {
 
   // Valuation snapshot rows: Year 1, Year 5, Year 10
   const valSnapRows = [0, 4, 9].map(i => valuations?.[i]).filter(Boolean)
+
+  // RO Drivers: aggregate turnover schedule data across all years
+  const totalDivers = turnover?.reduce((s, r) => s + (r.diversification_shares ?? 0), 0) ?? 0
+  const totalRetire = turnover?.reduce((s, r) => s + (r.retirement_death_disability_shares ?? 0), 0) ?? 0
+  const totalTurnoverShares = turnover?.reduce((s, r) => s + (r.turnover_shares ?? 0), 0) ?? 0
+  const driverTotal = totalDivers + totalRetire + totalTurnoverShares
+  const diversPct = driverTotal > 0 ? ((totalDivers / driverTotal) * 100).toFixed(1) : '0.0'
+  const retirePct = driverTotal > 0 ? ((totalRetire / driverTotal) * 100).toFixed(1) : '0.0'
+  const turnoverPct = driverTotal > 0 ? ((totalTurnoverShares / driverTotal) * 100).toFixed(1) : '0.0'
+
+  // Population & Compensation: latest year metrics
+  const latestPop = population && population.length > 0 ? population[population.length - 1] : null
+  const activeParticipants = latestPop?.active_participants?.toLocaleString('en-US', { maximumFractionDigits: 0 }) ?? '0'
+  const avgTotalComp = latestPop?.average_total_compensation
+    ? Math.round(latestPop.average_total_compensation).toLocaleString('en-US')
+    : '0'
+  const benefitRate = latestPop?.effective_benefit_rate != null
+    ? (latestPop.effective_benefit_rate > 1
+        ? latestPop.effective_benefit_rate.toFixed(1)
+        : (latestPop.effective_benefit_rate * 100).toFixed(1))
+    : 'N/A'
+  const shareTurn = latestPop?.share_turn_rate != null
+    ? (latestPop.share_turn_rate > 1
+        ? latestPop.share_turn_rate.toFixed(1)
+        : (latestPop.share_turn_rate * 100).toFixed(1))
+    : 'N/A'
 
   return (
     <div className="space-y-6">
@@ -289,6 +316,93 @@ export default async function DashboardPage() {
                 <Link href="/valuation" className="inline-block text-sm font-medium text-blue-600 hover:text-blue-800">
                   View Full Analysis &rarr;
                 </Link>
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* Legacy Analytics Sections */}
+          <section aria-label="Analytics Details" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* RO Drivers Summary */}
+            <Card>
+              <CardHeader>
+                <h3 className="font-semibold text-gray-900">Repurchase Obligation Drivers</h3>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-2xl font-bold text-menke-navy">{diversPct}%</p>
+                    <p className="text-xs text-gray-500">Diversification</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-menke-navy">{retirePct}%</p>
+                    <p className="text-xs text-gray-500">Retirement &amp; Disability</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-menke-navy">{turnoverPct}%</p>
+                    <p className="text-xs text-gray-500">Turnover</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Population & Compensation Summary */}
+            <Card>
+              <CardHeader>
+                <h3 className="font-semibold text-gray-900">Population &amp; Compensation</h3>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Active Participants</p>
+                    <p className="text-lg font-bold">{activeParticipants}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Avg Total Compensation</p>
+                    <p className="text-lg font-bold">${avgTotalComp}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Effective Benefit Rate</p>
+                    <p className="text-lg font-bold">{benefitRate}%</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Share Turn</p>
+                    <p className="text-lg font-bold">{shareTurn}%</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ESOP Success Score Trend */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <h3 className="font-semibold text-gray-900">ESOP Success Score Trend</h3>
+                <Link href="/success-score" className="text-sm text-blue-600 hover:text-blue-800">View details &rarr;</Link>
+              </CardHeader>
+              <CardContent>
+                {scores && scores.length > 0 ? (
+                  <>
+                    <div className="flex items-end gap-1 h-16">
+                      {scores.map((s, i) => {
+                        const pct = s.esop_success_score > 1 ? s.esop_success_score : s.esop_success_score * 100
+                        const height = Math.max(pct, 5)
+                        return (
+                          <div
+                            key={i}
+                            className="flex-1 bg-menke-navy rounded-t"
+                            style={{ height: `${height}%` }}
+                            title={`${s.year_for_payout}: ${pct.toFixed(1)}%`}
+                          />
+                        )
+                      })}
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-400 mt-1">
+                      <span>{scores[0]?.year_for_payout?.substring(0, 4)}</span>
+                      <span>{scores[scores.length - 1]?.year_for_payout?.substring(0, 4)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-400">No score data available</p>
+                )}
               </CardContent>
             </Card>
           </section>
