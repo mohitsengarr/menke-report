@@ -36,6 +36,22 @@ export function Topbar({ profile }: { profile: Profile | null }) {
     <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50">
       <div className="flex items-center justify-between h-full px-4 lg:px-6">
         <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => {
+              const sidebar = document.getElementById('mobile-sidebar')
+              const overlay = document.getElementById('sidebar-overlay')
+              sidebar?.classList.toggle('translate-x-0')
+              sidebar?.classList.toggle('-translate-x-full')
+              overlay?.classList.toggle('hidden')
+            }}
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+            aria-label="Toggle navigation menu"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
           <Link href="/dashboard" className="flex items-center gap-2">
             <span className="text-xl font-bold text-[#1B2A4A]">MENKE</span>
             <span className="hidden sm:inline text-xs text-gray-400 border-l pl-2 ml-1">ESOP ADVISORS SINCE 1974</span>
@@ -67,16 +83,16 @@ export function Topbar({ profile }: { profile: Profile | null }) {
                   <p className="text-sm font-medium text-gray-900">{profile?.username || 'User'}</p>
                   <p className="text-xs text-gray-500 truncate">{profile?.email || ''}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => { setOpen(false); router.push('/profile') }}
+                <a
+                  href="/profile"
+                  onClick={() => setOpen(false)}
                   className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                   Profile
-                </button>
+                </a>
                 <div className="border-t border-gray-100" />
                 <button
                   type="button"

@@ -6,6 +6,8 @@ import type { PopulationAnalysis } from '@/lib/types/database'
 
 const fmtDollar = (v: number) => `$${v.toLocaleString()}`
 
+export const metadata = { title: 'Population Analysis' }
+
 export default async function PopulationPage() {
   const supabase = await createClient()
   const { data: user } = await supabase.auth.getUser()

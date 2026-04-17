@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { InputData } from '@/lib/types/database'
 import { ParticipantSearch } from './participant-search'
 
+export const metadata = { title: 'Data Management' }
+
 export default async function ManagePage() {
   const supabase = await createClient()
   const { data: user } = await supabase.auth.getUser()

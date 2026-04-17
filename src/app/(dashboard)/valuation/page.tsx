@@ -7,6 +7,8 @@ import type { ValuationProjection } from '@/lib/types/database'
 function fmt(v: number) { return `$${(v / 1_000_000).toFixed(1)}M` }
 function fmtShare(v: number) { return `$${v.toFixed(2)}` }
 
+export const metadata = { title: 'Capital Table & Valuation' }
+
 export default async function ValuationPage() {
   const supabase = await createClient()
   const { data: user } = await supabase.auth.getUser()
@@ -88,17 +90,27 @@ export default async function ValuationPage() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Valuation Trend</CardTitle></CardHeader>
+        <CardHeader><CardTitle>ESOP Valuation Trend</CardTitle></CardHeader>
         <CardContent>
           <AppLineChart
             data={chartData}
             xKey="year"
-            lines={[
-              { key: 'esop_valuation', color: '#1B2A4A', name: 'ESOP Valuation' },
-              { key: 'price_per_share', color: '#3B7DD8', name: 'Price Per Share' },
-            ]}
+            lines={[{ key: 'esop_valuation', color: '#1B2A4A', name: 'ESOP Valuation' }]}
             formatType="dollarM"
-            height={350}
+            height={280}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Share Price Trend</CardTitle></CardHeader>
+        <CardContent>
+          <AppLineChart
+            data={chartData}
+            xKey="year"
+            lines={[{ key: 'price_per_share', color: '#3B7DD8', name: 'Price Per Share' }]}
+            formatType="dollar"
+            height={280}
           />
         </CardContent>
       </Card>

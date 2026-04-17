@@ -36,68 +36,96 @@ export function Sidebar({ profile }: { profile: Profile | null }) {
   const pathname = usePathname()
 
   return (
-    <aside className="fixed left-0 top-16 bottom-0 w-64 bg-white border-r border-gray-200 overflow-y-auto hidden md:block z-40">
-      <nav className="p-4 space-y-1">
-        {navItems.map((item) => {
-          const Icon = item.icon
-          const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+    <>
+      {/* Overlay for mobile */}
+      <div
+        id="sidebar-overlay"
+        className="hidden fixed inset-0 bg-black/50 z-30 md:hidden"
+        onClick={() => {
+          document.getElementById('mobile-sidebar')?.classList.add('-translate-x-full')
+          document.getElementById('mobile-sidebar')?.classList.remove('translate-x-0')
+          document.getElementById('sidebar-overlay')?.classList.add('hidden')
+        }}
+      />
+      <aside
+        id="mobile-sidebar"
+        className="fixed left-0 top-16 bottom-0 w-64 bg-white border-r border-gray-200 overflow-y-auto z-40 transition-transform duration-200 -translate-x-full md:translate-x-0"
+      >
+        <nav className="p-4 space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
 
-          return (
-            <div key={item.href}>
+            const closeMobileSidebar = () => {
+              document.getElementById('mobile-sidebar')?.classList.add('-translate-x-full')
+              document.getElementById('mobile-sidebar')?.classList.remove('translate-x-0')
+              document.getElementById('sidebar-overlay')?.classList.add('hidden')
+            }
+
+            return (
+              <div key={item.href}>
+                <Link
+                  href={item.href}
+                  onClick={closeMobileSidebar}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  )}
+                >
+                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  {item.label}
+                </Link>
+                {item.children && isActive && (
+                  <div className="ml-7 mt-1 space-y-1">
+                    {item.children.map((child) => (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        onClick={closeMobileSidebar}
+                        className={cn(
+                          'block px-3 py-1.5 rounded text-xs transition-colors',
+                          pathname === child.href
+                            ? 'text-blue-700 font-medium'
+                            : 'text-gray-500 hover:text-gray-700'
+                        )}
+                      >
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {profile?.role === 'admin' && (
+            <>
+              <div className="pt-4 pb-2">
+                <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Admin</p>
+              </div>
               <Link
-                href={item.href}
+                href="/admin"
+                onClick={() => {
+                  document.getElementById('mobile-sidebar')?.classList.add('-translate-x-full')
+                  document.getElementById('mobile-sidebar')?.classList.remove('translate-x-0')
+                  document.getElementById('sidebar-overlay')?.classList.add('hidden')
+                }}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                  isActive
+                  pathname?.startsWith('/admin')
                     ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    : 'text-gray-600 hover:bg-gray-100'
                 )}
               >
-                <Icon className="h-4 w-4 flex-shrink-0" />
-                {item.label}
+                <UserCircle className="h-4 w-4" />
+                User Management
               </Link>
-              {item.children && isActive && (
-                <div className="ml-7 mt-1 space-y-1">
-                  {item.children.map((child) => (
-                    <Link
-                      key={child.href}
-                      href={child.href}
-                      className={cn(
-                        'block px-3 py-1.5 rounded text-xs transition-colors',
-                        pathname === child.href
-                          ? 'text-blue-700 font-medium'
-                          : 'text-gray-500 hover:text-gray-700'
-                      )}
-                    >
-                      {child.label}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          )
-        })}
-
-        {profile?.role === 'admin' && (
-          <>
-            <div className="pt-4 pb-2">
-              <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Admin</p>
-            </div>
-            <Link
-              href="/admin"
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                pathname?.startsWith('/admin')
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-100'
-              )}
-            >
-              <UserCircle className="h-4 w-4" />
-              User Management
-            </Link>
-          </>
-        )}
-      </nav>
-    </aside>
+            </>
+          )}
+        </nav>
+      </aside>
+    </>
   )
 }

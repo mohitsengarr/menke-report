@@ -537,6 +537,8 @@ const engineStats = [
 /*  Page Component                                                     */
 /* ------------------------------------------------------------------ */
 
+export const metadata = { title: 'Formula Engine' }
+
 export default function FormulasPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-12 pb-12">

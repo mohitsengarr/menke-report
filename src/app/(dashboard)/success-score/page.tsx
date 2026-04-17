@@ -13,6 +13,8 @@ function getHealthLabel(score: number) {
   return { label: 'Impaired', color: 'bg-red-100 text-red-800 border-red-300' }
 }
 
+export const metadata = { title: 'ESOP Success Score' }
+
 export default async function SuccessScorePage() {
   const supabase = await createClient()
   const { data: user } = await supabase.auth.getUser()
@@ -65,7 +67,7 @@ export default async function SuccessScorePage() {
               {health.label}
             </div>
             <div className="text-gray-600">
-              Latest Score: <span className="font-bold text-gray-900">{latest.esop_success_score.toFixed(1)}</span>
+              Latest Score: <span className="font-bold text-gray-900">{(latest.esop_success_score > 1 ? latest.esop_success_score : latest.esop_success_score * 100).toFixed(1)}%</span>
               <span className="text-sm ml-2">({latest.year_for_payout})</span>
             </div>
           </div>
@@ -96,7 +98,7 @@ export default async function SuccessScorePage() {
                     <td className="py-2 pr-4 text-right">{fmtDollar(r.cash_source)}</td>
                     <td className="py-2 pr-4 text-right">{fmtDollar(r.surplus_or_deficit)}</td>
                     <td className="py-2 pr-4 text-right">{(r.ro_cash_burn * 100).toFixed(1)}%</td>
-                    <td className="py-2 pr-4 text-right font-semibold">{r.esop_success_score.toFixed(1)}</td>
+                    <td className="py-2 pr-4 text-right font-semibold">{(r.esop_success_score > 1 ? r.esop_success_score : r.esop_success_score * 100).toFixed(1)}%</td>
                     <td className="py-2 text-right">{r.health_check}</td>
                   </tr>
                 ))}

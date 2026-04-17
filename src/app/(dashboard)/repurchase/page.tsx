@@ -7,6 +7,8 @@ import type { RepurchaseObligation, ShareTurnoverSchedule } from '@/lib/types/da
 
 const fmtDollar = (v: number) => `$${(v / 1_000_000).toFixed(1)}M`
 
+export const metadata = { title: 'Repurchase Obligation' }
+
 export default async function RepurchasePage() {
   const supabase = await createClient()
   const { data: user } = await supabase.auth.getUser()

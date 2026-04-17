@@ -55,6 +55,8 @@ const tocItems = [
   'V. Technical Architecture',
 ]
 
+export const metadata = { title: 'About' }
+
 export default function AboutPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-12 pb-12">
