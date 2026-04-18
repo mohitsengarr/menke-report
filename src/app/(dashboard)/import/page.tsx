@@ -12,14 +12,36 @@ type UploadResult = {
 
 export default function ImportPage() {
   // Section 1: File Upload
+  // SEN-221: keep the selected File in React state so the button click after
+  // selection doesn't lose the reference across re-renders. The uncontrolled
+  // <input type="file"> was dropping its `files` list whenever parent state
+  // changed, which made the first Upload click re-open the picker.
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle')
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadMessage, setUploadMessage] = useState('')
   const [fileName, setFileName] = useState('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadResult, setUploadResult] = useState<UploadResult>(null)
   const [dragging, setDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
+
+  function pickFile(file: File) {
+    // Centralized selection: always update both the display name and the
+    // state-held File reference, and wipe any stale status.
+    setSelectedFile(file)
+    setFileName(file.name)
+    setUploadStatus('idle')
+    setUploadMessage('')
+    setUploadProgress(0)
+    setUploadResult(null)
+  }
+
+  function clearSelection() {
+    setSelectedFile(null)
+    setFileName('')
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
 
   // Section 1b: Single-Tab Upload
   const [singleFile, setSingleFile] = useState<File | null>(null)
@@ -81,23 +103,17 @@ export default function ImportPage() {
     setDragging(false)
 
     const files = e.dataTransfer.files
-    if (files.length > 0 && fileInputRef.current) {
-      // Assign dropped files to the file input so handleFileUpload picks them up
-      const dt = new DataTransfer()
-      dt.items.add(files[0])
-      fileInputRef.current.files = dt.files
-      // Reset state for fresh upload
-      setUploadStatus('idle')
-      setUploadMessage('')
-      setUploadProgress(0)
-      setUploadResult(null)
-      // Auto-trigger upload
-      handleFileUpload()
+    if (files.length > 0) {
+      const file = files[0]!
+      pickFile(file)
+      // Auto-trigger upload on drop, passing the file directly so we don't
+      // race with React state updates.
+      void handleFileUpload(file)
     }
   }
 
-  async function handleFileUpload() {
-    const file = fileInputRef.current?.files?.[0]
+  async function handleFileUpload(explicit?: File) {
+    const file = explicit ?? selectedFile
     if (!file) {
       setUploadStatus('error')
       setUploadMessage('Please select a file first.')
@@ -152,7 +168,8 @@ export default function ImportPage() {
           participantCount: data.participantCount ?? 0,
           companyName: data.companyName ?? 'Unknown',
         })
-        // Reset file input
+        // Clear selection so the next upload starts fresh
+        setSelectedFile(null)
         if (fileInputRef.current) fileInputRef.current.value = ''
       } else {
         setUploadStatus('error')
@@ -333,13 +350,8 @@ export default function ImportPage() {
                 accept=".xlsx"
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 onChange={(e) => {
-                  setUploadStatus('idle')
-                  setUploadMessage('')
-                  setUploadProgress(0)
-                  setUploadResult(null)
-                  // Show selected filename immediately so users know it was picked
                   const picked = e.target.files?.[0]
-                  if (picked) setFileName(picked.name)
+                  if (picked) pickFile(picked)
                 }}
               />
               <p className="text-xs text-gray-400 mt-3">Supported: ESOP workbooks with all tabs. Max 50 MB.</p>
@@ -358,8 +370,7 @@ export default function ImportPage() {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation()
-                    setFileName('')
-                    if (fileInputRef.current) fileInputRef.current.value = ''
+                    clearSelection()
                   }}
                   className="text-xs text-gray-500 hover:text-gray-700 shrink-0"
                   title="Clear selection"
@@ -371,8 +382,8 @@ export default function ImportPage() {
 
             <button
               type="button"
-              onClick={handleFileUpload}
-              disabled={uploadStatus === 'uploading'}
+              onClick={() => handleFileUpload()}
+              disabled={uploadStatus === 'uploading' || !selectedFile}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {uploadStatus === 'uploading' ? (
