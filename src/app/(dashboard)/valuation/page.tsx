@@ -3,9 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppLineChart } from '@/components/charts/line-chart'
 import { CHART_COLORS } from '@/lib/chart-colors'
+import { fmtPct, fmtDollarCompact } from '@/lib/utils'
 import type { ValuationProjection } from '@/lib/types/database'
 
-function fmt(v: number) { return `$${(v / 1_000_000).toFixed(1)}M` }
+const fmt = (v: number) => fmtDollarCompact(v)
 function fmtShare(v: number) { return `$${v.toFixed(2)}` }
 
 export const metadata = { title: 'Capital Table & Valuation' }
@@ -76,12 +77,12 @@ export default async function ValuationPage() {
                     <td className="py-2 pr-4 font-medium">{r.year}</td>
                     <td className="py-2 pr-4 text-right">{fmt(r.esop_valuation ?? 0)}</td>
                     <td className="py-2 pr-4 text-right">{(r.esop_shares ?? 0).toLocaleString()}</td>
-                    <td className="py-2 pr-4 text-right">{((r.pct_esop_shares ?? 0) * 100).toFixed(1)}%</td>
+                    <td className="py-2 pr-4 text-right">{fmtPct(r.pct_esop_shares, 1)}</td>
                     <td className="py-2 pr-4 text-right">{(r.other_shares ?? 0).toLocaleString()}</td>
-                    <td className="py-2 pr-4 text-right">{((r.pct_other_shares ?? 0) * 100).toFixed(1)}%</td>
+                    <td className="py-2 pr-4 text-right">{fmtPct(r.pct_other_shares, 1)}</td>
                     <td className="py-2 pr-4 text-right">{(r.total_shares ?? 0).toLocaleString()}</td>
                     <td className="py-2 pr-4 text-right">{fmtShare(r.price_per_share ?? 0)}</td>
-                    <td className="py-2 text-right">{((r.share_price_change ?? 0) * 100).toFixed(1)}%</td>
+                    <td className="py-2 text-right">{fmtPct(r.share_price_change, 1)}</td>
                   </tr>
                 ))}
               </tbody>

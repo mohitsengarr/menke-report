@@ -3,9 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppLineChart } from '@/components/charts/line-chart'
 import { CHART_COLORS } from '@/lib/chart-colors'
+import { fmtPct, fmtDollar } from '@/lib/utils'
 import type { SuccessScore } from '@/lib/types/database'
-
-function fmtDollar(v: number) { return `$${v.toLocaleString('en-US', { maximumFractionDigits: 0 })}` }
 
 function getHealthLabel(score: number) {
   // Score is 0.0-1.0 scale
@@ -121,8 +120,8 @@ export default async function SuccessScorePage() {
                     <td className="py-2 pr-4 text-right">{fmtDollar(r.repurchase_obligation)}</td>
                     <td className="py-2 pr-4 text-right">{fmtDollar(r.cash_source)}</td>
                     <td className="py-2 pr-4 text-right">{fmtDollar(r.surplus_or_deficit)}</td>
-                    <td className={`py-2 pr-4 text-right font-medium ${getCashBurnColor(r.ro_cash_burn)}`}>{(r.ro_cash_burn * 100).toFixed(1)}%</td>
-                    <td className="py-2 pr-4 text-right font-semibold">{(r.esop_success_score > 1 ? r.esop_success_score : r.esop_success_score * 100).toFixed(1)}%</td>
+                    <td className={`py-2 pr-4 text-right font-medium ${getCashBurnColor(r.ro_cash_burn)}`}>{fmtPct(r.ro_cash_burn, 1)}</td>
+                    <td className="py-2 pr-4 text-right font-semibold">{fmtPct(r.esop_success_score, 1)}</td>
                     <td className="py-2 text-right">
                       <span className={`px-2 py-0.5 rounded-full border text-xs font-semibold ${getHealthLabel(r.health_check).color}`}>
                         {getHealthLabel(r.health_check).label}

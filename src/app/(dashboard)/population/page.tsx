@@ -3,9 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppBarChart } from '@/components/charts/bar-chart'
 import { CHART_COLORS } from '@/lib/chart-colors'
+import { fmtPct, fmtDollar } from '@/lib/utils'
 import type { PopulationAnalysis } from '@/lib/types/database'
-
-const fmtDollar = (v: number) => `$${v.toLocaleString()}`
 
 export const metadata = { title: 'Population Analysis' }
 
@@ -82,7 +81,7 @@ export default async function PopulationPage() {
                     <td className="py-2 pr-4 text-right">{fmtDollar(r.stock_allocations)}</td>
                     <td className="py-2 pr-4 text-right">{fmtDollar(r.cash_contributions)}</td>
                     <td className="py-2 pr-4 text-right">{fmtDollar(r.fringe)}</td>
-                    <td className="py-2 pr-4 text-right">{(r.effective_benefit_rate * 100).toFixed(1)}%</td>
+                    <td className="py-2 pr-4 text-right">{fmtPct(r.effective_benefit_rate, 1)}</td>
                     <td className="py-2 text-right">{r.share_turn.toLocaleString()}</td>
                   </tr>
                 ))}
