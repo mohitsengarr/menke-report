@@ -229,6 +229,16 @@ interface ReportData {
 }
 
 /**
+ * SEN-223/SEN-224: True when at least one narrative field is non-empty.
+ * Used to decide whether the TOC gets a "Plan Narrative" entry and
+ * whether to allocate PDF pages for any narrative sections.
+ */
+function hasAnyNarrative(n: ReportNarrative | undefined | null): boolean {
+  if (!n) return false
+  return Object.values(n).some(v => typeof v === 'string' && v.trim().length > 0)
+}
+
+/**
  * SEN-223: Render the user-supplied narrative bundle into a set of PDF
  * pages. Each group (Plan Structure, Redemption, Funding, Life Cycle,
  * Assumptions, Dividends, Plan Design, Disclaimer override) appears only
@@ -718,6 +728,16 @@ function buildReportHTML(data: ReportData): string {
       <li>Capital Table &amp; Valuation Projections</li>
       <li>Your Menke ESOP Success Score</li>
       <li>Demographic Assumptions &amp; Plan Provisions</li>
+      ${hasAnyNarrative(data.narrative) ? `
+      <li>Plan Narrative</li>
+      ${data.narrative.leveragedDiscussion || data.narrative.substantialDiscussion || data.narrative.annualContributions || data.narrative.leveraged || data.narrative.substantial ? '<li class="sub">Plan Structure</li>' : ''}
+      ${data.narrative.followedRedemption || data.narrative.stockRedemption || data.narrative.recycling || data.narrative.approach ? '<li class="sub">Redemption &amp; Recycling</li>' : ''}
+      ${data.narrative.contributionFunding || data.narrative.cashComeFrom ? '<li class="sub">Funding Approach</li>' : ''}
+      ${data.narrative.materialEvents || data.narrative.earlyStage || data.narrative.midStage || data.narrative.lateStages ? '<li class="sub">Plan Life Cycle</li>' : ''}
+      ${data.narrative.diversification || data.narrative.turnoverAssumption || data.narrative.death || data.narrative.disability || data.narrative.retirementAge || data.narrative.salaryIncrease ? '<li class="sub">Assumptions &amp; Projections</li>' : ''}
+      ${data.narrative.dividendsContributions || data.narrative.repurchaseMethod ? '<li class="sub">Dividends &amp; Repurchase</li>' : ''}
+      ${data.narrative.participation || data.narrative.eligibility || data.narrative.planAllocations ? '<li class="sub">Plan Design</li>' : ''}
+      ` : ''}
       <li>Conclusion &amp; Documentation</li>
       <li>ESOP Lifecycle</li>
       <li>Funding Your Repurchase Obligation</li>
@@ -728,6 +748,12 @@ function buildReportHTML(data: ReportData): string {
   <!-- ═══════ EXECUTIVE SUMMARY (text) ═══════ -->
   <div class="page narrative">
     <h1 class="section-head">EXECUTIVE SUMMARY</h1>
+    ${(data.planStage || data.fundingApproach || data.contributionSource) ? `
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; padding: 12px 16px; background: ${LIGHT}; border-left: 4px solid ${NAVY}; font-size: 11.5px;">
+      ${data.planStage ? `<div><div style="font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Plan Stage</div><div style="margin-top: 4px; color: ${NAVY}; font-weight: 600;">${escape(data.planStage)}</div></div>` : ''}
+      ${data.fundingApproach ? `<div><div style="font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Funding Approach</div><div style="margin-top: 4px; color: ${NAVY}; font-weight: 600;">${escape(data.fundingApproach)}</div></div>` : ''}
+      ${data.contributionSource ? `<div><div style="font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Contribution Source</div><div style="margin-top: 4px; color: ${NAVY}; font-weight: 600;">${escape(data.contributionSource)}</div></div>` : ''}
+    </div>` : ''}
     ${executiveSummary ? `<p>${escape(executiveSummary)}</p>` : ''}
     <p>
       ${escape(title)} is a ${data.distributions?.sc_corporation === 'S' ? 'S-corporation' : 'C-corporation'}
