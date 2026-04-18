@@ -64,7 +64,16 @@ export function Sidebar({ profile }: { profile: Profile | null }) {
         >
           {navItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+            // Parent is "active" when its own href matches OR any of its children match.
+            // Without the child check, clicking a sub-item whose href lives under a
+            // different URL segment (e.g. "Repurchase Obligation" at /repurchase from
+            // a "Valuation" parent at /valuation) would collapse the whole group
+            // because pathname.startsWith('/valuation/') is false for /repurchase.
+            const selfActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+            const anyChildActive = item.children?.some(
+              c => pathname === c.href || pathname?.startsWith(c.href + '/')
+            ) ?? false
+            const groupOpen = !!(selfActive || anyChildActive)
 
             const closeMobileSidebar = () => {
               document.getElementById('mobile-sidebar')?.classList.add('-translate-x-full')
@@ -85,7 +94,7 @@ export function Sidebar({ profile }: { profile: Profile | null }) {
                   onClick={closeMobileSidebar}
                   className={cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                    isActive
+                    groupOpen
                       ? 'bg-blue-50 text-blue-700'
                       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   )}
@@ -93,23 +102,27 @@ export function Sidebar({ profile }: { profile: Profile | null }) {
                   <Icon className="h-4 w-4 flex-shrink-0" />
                   {item.label}
                 </Link>
-                {item.children && isActive && (
+                {item.children && groupOpen && (
                   <div className="ml-7 mt-1 space-y-1">
-                    {item.children.map((child) => (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        onClick={closeMobileSidebar}
-                        className={cn(
-                          'block px-3 py-1.5 rounded text-xs transition-colors',
-                          pathname === child.href
-                            ? 'text-blue-700 font-medium'
-                            : 'text-gray-500 hover:text-gray-700'
-                        )}
-                      >
-                        {child.label}
-                      </Link>
-                    ))}
+                    {item.children.map((child) => {
+                      const childActive =
+                        pathname === child.href || pathname?.startsWith(child.href + '/')
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          onClick={closeMobileSidebar}
+                          className={cn(
+                            'block px-3 py-1.5 rounded text-xs transition-colors',
+                            childActive
+                              ? 'bg-blue-50 text-blue-700 font-medium'
+                              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                          )}
+                        >
+                          {child.label}
+                        </Link>
+                      )
+                    })}
                   </div>
                 )}
               </motion.div>
