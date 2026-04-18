@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { AppLineChart } from '@/components/charts/line-chart'
+import { CHART_COLORS } from '@/lib/chart-colors'
 import { TrendingUp, TrendingDown, DollarSign, Users, Award, Upload, FileText, BarChart3, UsersRound, AlertTriangle } from 'lucide-react'
 
 export const metadata = { title: 'ESOP Dashboard' }
@@ -374,6 +376,81 @@ export default async function DashboardPage() {
               </section>
             )
           })()}
+
+          {/*
+            SEN-227: Projection charts — one inline line chart per primary
+            metric, matching legacy `Views/index/Index.cshtml` which pairs a
+            Low/High/Average tile with an inline trend chart. Three charts:
+            Repurchase Obligation, Valuation Share Price Change, Success Score.
+          */}
+          {(repurchase?.length || valuations?.length || scores?.length) ? (
+            <section aria-label="Projection Charts" className="space-y-4">
+              <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-500">Projection Charts</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {repurchase && repurchase.length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <h3 className="text-sm font-semibold text-gray-800">Repurchase Obligation Projection</h3>
+                      <p className="text-xs text-gray-500">Total RO over the projection horizon</p>
+                    </CardHeader>
+                    <CardContent>
+                      <AppLineChart
+                        data={repurchase.map((r: { year: string; total_repurchase_obligation: number }) => ({
+                          year: r.year,
+                          ro: Number(r.total_repurchase_obligation) || 0,
+                        }))}
+                        xKey="year"
+                        lines={[{ key: 'ro', color: CHART_COLORS.red, name: 'Total RO' }]}
+                        height={220}
+                        formatType="dollarM"
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+                {valuations && valuations.length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <h3 className="text-sm font-semibold text-gray-800">Valuation — Share Price Change</h3>
+                      <p className="text-xs text-gray-500">Year-over-year share price growth</p>
+                    </CardHeader>
+                    <CardContent>
+                      <AppLineChart
+                        data={valuations.map((v: { year: string; share_price_change: number | null }) => ({
+                          year: v.year,
+                          change: Number(v.share_price_change) || 0,
+                        }))}
+                        xKey="year"
+                        lines={[{ key: 'change', color: CHART_COLORS.blue, name: 'Share Price Change' }]}
+                        height={220}
+                        formatType="percent"
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+                {scores && scores.length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <h3 className="text-sm font-semibold text-gray-800">ESOP Success Score Projection</h3>
+                      <p className="text-xs text-gray-500">Plan sustainability rating by payout year</p>
+                    </CardHeader>
+                    <CardContent>
+                      <AppLineChart
+                        data={scores.map((s: { year_for_payout: string; esop_success_score: number }) => {
+                          const raw = Number(s.esop_success_score) || 0
+                          // Normalise to 0–1 range for percent formatter.
+                          return { year: s.year_for_payout, score: Math.abs(raw) > 1 ? raw / 100 : raw }
+                        })}
+                        xKey="year"
+                        lines={[{ key: 'score', color: CHART_COLORS.green, name: 'Success Score' }]}
+                        height={220}
+                        formatType="percent"
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </section>
+          ) : null}
 
           {/* Tables */}
           <section aria-label="Data Tables" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
