@@ -35,26 +35,42 @@ export default async function DashboardPage() {
   // `user` ends up null and every subsequent `user!.id` throws a
   // TypeError. Next.js's RSC streaming catches those and falls through
   // to not-found.tsx, producing the "stuck on skeleton" symptom.
+  const t0 = Date.now()
+  const log = (msg: string) => console.log(`[SEN-228 dashboard t+${Date.now() - t0}ms] ${msg}`)
+  log('start')
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  log('createClient ok')
+  const { data: { user }, error: authErr } = await supabase.auth.getUser()
+  log(`getUser done — user=${user?.id ?? 'null'} err=${authErr?.message ?? 'none'}`)
   if (!user) redirect('/login')
   const userId = user.id
 
-  const [
-    { data: profile },
-    { data: valuations },
-    { data: repurchase },
-    { data: population },
-    { data: scores },
-    { data: turnover },
-  ] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
-    supabase.from('valuation_projections').select('*').eq('user_id', userId).order('year'),
-    supabase.from('repurchase_obligations').select('*').eq('user_id', userId).order('year'),
-    supabase.from('population_analyses').select('*').eq('user_id', userId).order('year'),
-    supabase.from('success_scores').select('*').eq('user_id', userId).order('year_for_payout'),
-    supabase.from('share_turnover_schedules').select('*').eq('user_id', userId),
-  ])
+  // Fetch each table sequentially (not Promise.all) so we can identify which one hangs.
+  log('q1 profiles start')
+  const { data: profile, error: profErr } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
+  log(`q1 profiles done err=${profErr?.message ?? 'none'} rows=${profile ? 1 : 0}`)
+
+  log('q2 valuations start')
+  const { data: valuations, error: valErr } = await supabase.from('valuation_projections').select('*').eq('user_id', userId).order('year')
+  log(`q2 valuations done err=${valErr?.message ?? 'none'} rows=${valuations?.length ?? 'null'}`)
+
+  log('q3 repurchase start')
+  const { data: repurchase, error: repErr } = await supabase.from('repurchase_obligations').select('*').eq('user_id', userId).order('year')
+  log(`q3 repurchase done err=${repErr?.message ?? 'none'} rows=${repurchase?.length ?? 'null'}`)
+
+  log('q4 population start')
+  const { data: population, error: popErr } = await supabase.from('population_analyses').select('*').eq('user_id', userId).order('year')
+  log(`q4 population done err=${popErr?.message ?? 'none'} rows=${population?.length ?? 'null'}`)
+
+  log('q5 scores start')
+  const { data: scores, error: scoreErr } = await supabase.from('success_scores').select('*').eq('user_id', userId).order('year_for_payout')
+  log(`q5 scores done err=${scoreErr?.message ?? 'none'} rows=${scores?.length ?? 'null'}`)
+
+  log('q6 turnover start')
+  const { data: turnover, error: turnErr } = await supabase.from('share_turnover_schedules').select('*').eq('user_id', userId)
+  log(`q6 turnover done err=${turnErr?.message ?? 'none'} rows=${turnover?.length ?? 'null'}`)
+
+  log('all queries complete')
 
   const yearSort = (a: { year: string }, b: { year: string }) => {
     const yearA = parseInt(a.year.replace(/\D/g, '')) || 0
