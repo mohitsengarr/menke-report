@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { fmtDollar } from '@/lib/utils'
 import type { AverageAgeTenureTerminated } from '@/lib/types/database'
 
-const fmt = (v: number) => v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-const fmtDollar = (v: number) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+const fmtYears = (v: number) => v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
 export default async function AverageAgeTenureTerminatedPage() {
   const supabase = await createClient()
@@ -17,8 +17,11 @@ export default async function AverageAgeTenureTerminatedPage() {
     .eq('user_id', user.user.id)
 
   const rows = (data ?? []) as AverageAgeTenureTerminated[]
-  const ORDER = ['All', '0-5 years', '5-10 years', '10-15 years', '15-20 years', '20+ years']
-  rows.sort((a, b) => ORDER.indexOf(a.category) - ORDER.indexOf(b.category))
+  rows.sort((a, b) => {
+    const na = parseInt((a.year ?? '').replace(/\D/g, '')) || 0
+    const nb = parseInt((b.year ?? '').replace(/\D/g, '')) || 0
+    return na - nb
+  })
 
   if (rows.length === 0) {
     return (
@@ -34,59 +37,58 @@ export default async function AverageAgeTenureTerminatedPage() {
     )
   }
 
-  const allRow = rows.find(r => r.category === 'All')
-  const bucketed = rows.filter(r => r.category !== 'All')
-  const totalCount = bucketed.reduce((s, r) => s + r.count, 0)
-  const totals = allRow
-    ? { count: allRow.count, avgAge: allRow.avg_age, avgTenure: allRow.avg_tenure, avgBalance: allRow.avg_balance }
-    : {
-        count: totalCount,
-        avgAge: totalCount > 0 ? bucketed.reduce((s, r) => s + r.avg_age * r.count, 0) / totalCount : 0,
-        avgTenure: totalCount > 0 ? bucketed.reduce((s, r) => s + r.avg_tenure * r.count, 0) / totalCount : 0,
-        avgBalance: totalCount > 0 ? bucketed.reduce((s, r) => s + r.avg_balance * r.count, 0) / totalCount : 0,
-      }
+  const totalYears = rows.length
+  const termAgeMean = rows.reduce((s, r) => s + Number(r.avg_age_terminated), 0) / totalYears
+  const termTenureMean = rows.reduce((s, r) => s + Number(r.avg_tenure_terminated), 0) / totalYears
+  const termBalMean = rows.reduce((s, r) => s + Number(r.avg_balance_terminated), 0) / totalYears
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Avg Age &amp; Tenure (Terminated)</h1>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-gray-500">Total Count</p><p className="text-xl font-bold">{totals.count.toLocaleString()}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-gray-500">Avg Age</p><p className="text-xl font-bold">{fmt(totals.avgAge)}</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-gray-500">Avg Tenure</p><p className="text-xl font-bold">{fmt(totals.avgTenure)} yrs</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-gray-500">Avg Balance</p><p className="text-xl font-bold">{fmtDollar(totals.avgBalance)}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-gray-500">Years</p><p className="text-xl font-bold">{totalYears}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-gray-500">Avg Age (Term)</p><p className="text-xl font-bold">{fmtYears(termAgeMean)}</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-gray-500">Avg Tenure (Term)</p><p className="text-xl font-bold">{fmtYears(termTenureMean)} yrs</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-gray-500">Avg Balance (Term)</p><p className="text-xl font-bold">{fmtDollar(termBalMean)}</p></CardContent></Card>
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Terminated Participants by Category</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Terminated Population by Projection Year</CardTitle></CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr className="border-b text-left text-gray-500">
-                  <th className="py-2 pr-4">Category</th>
-                  <th className="py-2 pr-4 text-right">Count</th>
-                  <th className="py-2 pr-4 text-right">Avg Age</th>
-                  <th className="py-2 pr-4 text-right">Avg Tenure</th>
-                  <th className="py-2 text-right">Avg Balance</th>
+                  <th className="py-2 pr-4">Plan Year</th>
+                  <th className="py-2 pr-4 text-right">Avg Age Top 10%</th>
+                  <th className="py-2 pr-4 text-right">Avg Balance Top 10%</th>
+                  <th className="py-2 pr-4 text-right">Avg Age Bottom 10%</th>
+                  <th className="py-2 pr-4 text-right">Avg Balance Bottom 10%</th>
+                  <th className="py-2 pr-4 text-right">Avg Age Term</th>
+                  <th className="py-2 pr-4 text-right">Avg Tenure Term</th>
+                  <th className="py-2 text-right">Avg Balance Term</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id} className="border-b last:border-0 hover:bg-gray-50">
-                    <td className="py-2 pr-4 font-medium">{r.category}</td>
-                    <td className="py-2 pr-4 text-right">{r.count.toLocaleString()}</td>
-                    <td className="py-2 pr-4 text-right">{fmt(r.avg_age)}</td>
-                    <td className="py-2 pr-4 text-right">{fmt(r.avg_tenure)}</td>
-                    <td className="py-2 text-right">{fmtDollar(r.avg_balance)}</td>
+                    <td className="py-2 pr-4 font-medium">{r.year}</td>
+                    <td className="py-2 pr-4 text-right">{fmtYears(Number(r.avg_age_top_10pct))}</td>
+                    <td className="py-2 pr-4 text-right">{fmtDollar(Number(r.avg_balance_top_10pct))}</td>
+                    <td className="py-2 pr-4 text-right">{fmtYears(Number(r.avg_age_bottom_10pct))}</td>
+                    <td className="py-2 pr-4 text-right">{fmtDollar(Number(r.avg_balance_bottom_10pct))}</td>
+                    <td className="py-2 pr-4 text-right">{fmtYears(Number(r.avg_age_terminated))}</td>
+                    <td className="py-2 pr-4 text-right">{fmtYears(Number(r.avg_tenure_terminated))}</td>
+                    <td className="py-2 text-right">{fmtDollar(Number(r.avg_balance_terminated))}</td>
                   </tr>
                 ))}
                 <tr className="border-t-2 font-semibold bg-gray-50">
-                  <td className="py-2 pr-4">Total / Weighted Avg</td>
-                  <td className="py-2 pr-4 text-right">{totals.count.toLocaleString()}</td>
-                  <td className="py-2 pr-4 text-right">{fmt(totals.avgAge)}</td>
-                  <td className="py-2 pr-4 text-right">{fmt(totals.avgTenure)}</td>
-                  <td className="py-2 text-right">{fmtDollar(totals.avgBalance)}</td>
+                  <td className="py-2 pr-4">Mean</td>
+                  <td className="py-2 pr-4 text-right" colSpan={4}></td>
+                  <td className="py-2 pr-4 text-right">{fmtYears(termAgeMean)}</td>
+                  <td className="py-2 pr-4 text-right">{fmtYears(termTenureMean)}</td>
+                  <td className="py-2 text-right">{fmtDollar(termBalMean)}</td>
                 </tr>
               </tbody>
             </table>

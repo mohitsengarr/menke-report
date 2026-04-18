@@ -188,24 +188,33 @@ export type SuccessScore = {
   key_takeaway: string | null
 }
 
+/** SEN-222: year-by-year shape matching legacy AverageAgeTenure.cshtml */
 export type AverageAgeTenureActive = {
   id: string
   user_id: string
-  category: string
-  count: number
-  avg_age: number
-  avg_tenure: number
-  avg_balance: number
+  year: string
+  average_age: number
+  average_tenure: number
+  covered_compensation: number
+  compensation_pct_change: number
+  average_vested_balance: number
+  balance_pct_change: number
+  updated_at: string
 }
 
+/** SEN-222: year-by-year shape matching legacy AverageAgeTenureBalance.cshtml */
 export type AverageAgeTenureTerminated = {
   id: string
   user_id: string
-  category: string
-  count: number
-  avg_age: number
-  avg_tenure: number
-  avg_balance: number
+  year: string
+  avg_age_top_10pct: number
+  avg_balance_top_10pct: number
+  avg_age_bottom_10pct: number
+  avg_balance_bottom_10pct: number
+  avg_age_terminated: number
+  avg_tenure_terminated: number
+  avg_balance_terminated: number
+  updated_at: string
 }
 
 export type Snapshot = {

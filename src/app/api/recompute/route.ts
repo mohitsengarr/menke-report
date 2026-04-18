@@ -170,21 +170,27 @@ export async function POST() {
   const st = engineOutput.shareTurnover.map(r => ({ user_id: userId, ...toDb(r) }))
   const pa = engineOutput.populationAnalysis.map(r => ({ user_id: userId, ...toDb(r) }))
   const ss = engineOutput.successScores.map(r => ({ user_id: userId, ...toDb(r) }))
-  const ata = engineOutput.ageTenureActive.map(r => ({
+  // SEN-222: Year-by-year age/tenure rows (legacy shape)
+  const ata = (engineOutput.ageTenureActiveByYear ?? []).map(r => ({
     user_id: userId,
-    category: r.category,
-    count: r.count,
-    avg_age: r.avgAge,
-    avg_tenure: r.avgTenure,
-    avg_balance: r.avgBalance,
+    year: r.year,
+    average_age: r.averageAge,
+    average_tenure: r.averageTenure,
+    covered_compensation: r.coveredCompensation,
+    compensation_pct_change: r.compensationPctChange,
+    average_vested_balance: r.averageVestedBalance,
+    balance_pct_change: r.balancePctChange,
   }))
-  const att = engineOutput.ageTenureTerminated.map(r => ({
+  const att = (engineOutput.ageTenureTerminatedByYear ?? []).map(r => ({
     user_id: userId,
-    category: r.category,
-    count: r.count,
-    avg_age: r.avgAge,
-    avg_tenure: r.avgTenure,
-    avg_balance: r.avgBalance,
+    year: r.year,
+    avg_age_top_10pct: r.avgAgeTop10pct,
+    avg_balance_top_10pct: r.avgBalanceTop10pct,
+    avg_age_bottom_10pct: r.avgAgeBottom10pct,
+    avg_balance_bottom_10pct: r.avgBalanceBottom10pct,
+    avg_age_terminated: r.avgAgeTerminated,
+    avg_tenure_terminated: r.avgTenureTerminated,
+    avg_balance_terminated: r.avgBalanceTerminated,
   }))
 
   const [

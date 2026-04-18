@@ -176,13 +176,13 @@ export async function processExcelWorkbook(userId: string, fileBuffer: Buffer) {
   const valuationProjections = engineOutput.valuationProjections ?? []
   const successScores = engineOutput.successScores ?? []
 
-  // Avg Age & Tenure now comes from the formula engine (ageTenureActive /
-  // ageTenureTerminated) so both single-tab and full-tab uploads populate
-  // the tables consistently. The old Excel extractors (extractAgeTenureActive /
-  // extractAgeTenureBalance) are kept for backward compatibility but no
-  // longer wired — the engine output is the source of truth.
-  const avgAgeTenureActive = engineOutput.ageTenureActive ?? []
-  const avgAgeTenureTerminated = engineOutput.ageTenureTerminated ?? []
+  // SEN-222: Age & tenure tables now use the year-by-year legacy shape.
+  // Pulled from the engine's new `ageTenureActiveByYear` / `ageTenureTerminatedByYear`
+  // outputs; the older service-tenure-bucket view (`ageTenureActive` /
+  // `ageTenureTerminated`) is kept in the engine for tests but no longer
+  // persisted to the DB.
+  const avgAgeTenureActive = engineOutput.ageTenureActiveByYear ?? []
+  const avgAgeTenureTerminated = engineOutput.ageTenureTerminatedByYear ?? []
 
   // ──────────────────────────────────────────
   // 4. Upsert everything to Supabase
@@ -306,25 +306,30 @@ export async function processExcelWorkbook(userId: string, fileBuffer: Buffer) {
       key_takeaway: r.keyTakeaway,
     })))
   }
-  // Avg Age & Tenure — map engine camelCase to DB snake_case.
+  // SEN-222: Avg Age & Tenure year-by-year — camelCase engine → snake_case DB.
   if (avgAgeTenureActive.length > 0) {
     await supabase.from('average_age_tenure_active').insert(avgAgeTenureActive.map(r => ({
       user_id: userId,
-      category: r.category,
-      count: r.count,
-      avg_age: r.avgAge,
-      avg_tenure: r.avgTenure,
-      avg_balance: r.avgBalance,
+      year: r.year,
+      average_age: r.averageAge,
+      average_tenure: r.averageTenure,
+      covered_compensation: r.coveredCompensation,
+      compensation_pct_change: r.compensationPctChange,
+      average_vested_balance: r.averageVestedBalance,
+      balance_pct_change: r.balancePctChange,
     })))
   }
   if (avgAgeTenureTerminated.length > 0) {
     await supabase.from('average_age_tenure_terminated').insert(avgAgeTenureTerminated.map(r => ({
       user_id: userId,
-      category: r.category,
-      count: r.count,
-      avg_age: r.avgAge,
-      avg_tenure: r.avgTenure,
-      avg_balance: r.avgBalance,
+      year: r.year,
+      avg_age_top_10pct: r.avgAgeTop10pct,
+      avg_balance_top_10pct: r.avgBalanceTop10pct,
+      avg_age_bottom_10pct: r.avgAgeBottom10pct,
+      avg_balance_bottom_10pct: r.avgBalanceBottom10pct,
+      avg_age_terminated: r.avgAgeTerminated,
+      avg_tenure_terminated: r.avgTenureTerminated,
+      avg_balance_terminated: r.avgBalanceTerminated,
     })))
   }
 

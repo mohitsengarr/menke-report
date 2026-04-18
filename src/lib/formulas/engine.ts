@@ -235,14 +235,41 @@ export interface AgeTenureRow {
   avgBalance: number
 }
 
+/** SEN-222: Year-by-year active population summary (legacy AverageAgeTenure.cshtml) */
+export interface AgeTenureActiveByYearRow {
+  year: string
+  averageAge: number
+  averageTenure: number
+  coveredCompensation: number
+  compensationPctChange: number   // YoY % change in coveredCompensation
+  averageVestedBalance: number
+  balancePctChange: number        // YoY % change in averageVestedBalance
+}
+
+/** SEN-222: Year-by-year terminated-population balance splits (legacy AverageAgeTenureBalance.cshtml) */
+export interface AgeTenureTerminatedByYearRow {
+  year: string
+  avgAgeTop10pct: number
+  avgBalanceTop10pct: number
+  avgAgeBottom10pct: number
+  avgBalanceBottom10pct: number
+  avgAgeTerminated: number
+  avgTenureTerminated: number
+  avgBalanceTerminated: number
+}
+
 export interface FormulaEngineOutput {
   valuationProjections: ValuationProjectionRow[]
   repurchaseObligations: RepurchaseObligationRow[]
   shareTurnover: ShareTurnoverRow[]
   populationAnalysis: PopulationAnalysisRow[]
   successScores: SuccessScoreRow[]
+  /** Legacy service-tenure-bucket view (preserved for backward compat) */
   ageTenureActive: AgeTenureRow[]
   ageTenureTerminated: AgeTenureRow[]
+  /** SEN-222: Legacy year-by-year view matching /AverageAgeTenure and /AverageAgeTenureBalance */
+  ageTenureActiveByYear: AgeTenureActiveByYearRow[]
+  ageTenureTerminatedByYear: AgeTenureTerminatedByYearRow[]
   participantDetails: ParticipantComputed[]
 }
 
@@ -588,6 +615,9 @@ export function runFormulaEngine(
   )
   const ageTenureActive = buildAgeTenureSummary(computed, true)
   const ageTenureTerminated = buildAgeTenureSummary(computed, false)
+  // SEN-222: legacy year-by-year views
+  const ageTenureActiveByYear = buildAgeTenureActiveByYear(computed, YEARS)
+  const ageTenureTerminatedByYear = buildAgeTenureTerminatedByYear(computed, YEARS)
 
   return {
     valuationProjections,
@@ -597,6 +627,8 @@ export function runFormulaEngine(
     successScores,
     ageTenureActive,
     ageTenureTerminated,
+    ageTenureActiveByYear,
+    ageTenureTerminatedByYear,
     participantDetails: computed,
   }
 }
@@ -1170,6 +1202,108 @@ function buildAgeTenureSummary(
       avgAge: Math.round(avgAge * 10) / 10,
       avgTenure: Math.round(avgTenure * 10) / 10,
       avgBalance: Math.round(avgBalance),
+    })
+  }
+  return rows
+}
+
+/**
+ * SEN-222: Year-by-year active population summary.
+ *
+ * Mirrors legacy `Views/PopulationAnalysis/AverageAgeTenure.cshtml`:
+ * weighted averages of age / tenure / compensation / vested balance
+ * across active participants for each projection year, with YoY %
+ * change on the two dollar columns.
+ */
+function buildAgeTenureActiveByYear(
+  computed: ParticipantComputed[],
+  numYears: number
+): AgeTenureActiveByYearRow[] {
+  const rows: AgeTenureActiveByYearRow[] = []
+  let prevComp = 0
+  let prevBalance = 0
+
+  for (let yr = 0; yr < numYears; yr++) {
+    let count = 0
+    let sumAge = 0
+    let sumTenure = 0
+    let sumComp = 0
+    let sumVested = 0
+    for (const pc of computed) {
+      const yd = pc.yearlyData[yr]!
+      if (!yd.isActiveInYear) continue
+      count++
+      sumAge += yd.age
+      sumTenure += yd.yearsOfService
+      sumComp += yd.projectedComp
+      sumVested += yd.totalAccountValue * yd.vestingPct
+    }
+    const avgAge = count > 0 ? sumAge / count : 0
+    const avgTenure = count > 0 ? sumTenure / count : 0
+    const avgBalance = count > 0 ? sumVested / count : 0
+    const compPctChange = prevComp > 0 ? (sumComp - prevComp) / prevComp : 0
+    const balPctChange = prevBalance > 0 ? (avgBalance - prevBalance) / prevBalance : 0
+
+    rows.push({
+      year: `Year ${yr}`,
+      averageAge: Math.round(avgAge * 10) / 10,
+      averageTenure: Math.round(avgTenure * 10) / 10,
+      coveredCompensation: Math.round(sumComp),
+      compensationPctChange: compPctChange,
+      averageVestedBalance: Math.round(avgBalance),
+      balancePctChange: balPctChange,
+    })
+    prevComp = sumComp
+    prevBalance = avgBalance
+  }
+  return rows
+}
+
+/**
+ * SEN-222: Year-by-year terminated-population balance splits.
+ *
+ * Mirrors legacy `Views/PopulationAnalysis/AverageAgeTenureBalance.cshtml`:
+ * for each projection year, rank terminated participants by repurchase
+ * obligation (vested account value) and report the top-10% and
+ * bottom-10% age/balance plus the full-population terminated averages.
+ */
+function buildAgeTenureTerminatedByYear(
+  computed: ParticipantComputed[],
+  numYears: number
+): AgeTenureTerminatedByYearRow[] {
+  const rows: AgeTenureTerminatedByYearRow[] = []
+
+  for (let yr = 0; yr < numYears; yr++) {
+    const termined: Array<{ age: number; tenure: number; balance: number }> = []
+    for (const pc of computed) {
+      if (!pc.isTerminated) continue
+      const yd = pc.yearlyData[yr]!
+      termined.push({
+        age: yd.age,
+        tenure: yd.yearsOfService,
+        balance: yd.totalAccountValue * yd.vestingPct,
+      })
+    }
+    // Sort descending by balance
+    termined.sort((a, b) => b.balance - a.balance)
+    const n = termined.length
+    const top10Count = Math.max(1, Math.ceil(n * 0.1))
+    const bottom10Count = Math.max(1, Math.ceil(n * 0.1))
+    const top10 = termined.slice(0, top10Count)
+    const bottom10 = termined.slice(-bottom10Count)
+
+    const avg = (arr: typeof termined, key: 'age' | 'tenure' | 'balance') =>
+      arr.length > 0 ? arr.reduce((s, r) => s + r[key], 0) / arr.length : 0
+
+    rows.push({
+      year: `Year ${yr}`,
+      avgAgeTop10pct: Math.round(avg(top10, 'age') * 10) / 10,
+      avgBalanceTop10pct: Math.round(avg(top10, 'balance')),
+      avgAgeBottom10pct: Math.round(avg(bottom10, 'age') * 10) / 10,
+      avgBalanceBottom10pct: Math.round(avg(bottom10, 'balance')),
+      avgAgeTerminated: Math.round(avg(termined, 'age') * 10) / 10,
+      avgTenureTerminated: Math.round(avg(termined, 'tenure') * 10) / 10,
+      avgBalanceTerminated: Math.round(avg(termined, 'balance')),
     })
   }
   return rows
