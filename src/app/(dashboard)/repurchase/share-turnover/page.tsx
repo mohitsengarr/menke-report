@@ -83,15 +83,19 @@ export default async function ShareTurnoverPage() {
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
+              {/*
+                SEN-226: reorder columns to match legacy `ShareTurnoverSchedule.cshtml` —
+                Diversification → In-Service Distributions → Retirement/Death/Disability → Turnover.
+              */}
               <thead>
                 <tr className="border-b text-left text-gray-500">
-                  <th className="py-2 pr-4">Year</th>
-                  <th className="py-2 pr-4">Payout Year</th>
+                  <th className="py-2 pr-4">Plan Year</th>
+                  <th className="py-2 pr-4">Calendar Year for Payout</th>
                   <th className="py-2 pr-4 text-right">Diversification</th>
-                  <th className="py-2 pr-4 text-right">Ret/Death/Disab</th>
+                  <th className="py-2 pr-4 text-right">In-Service Distributions</th>
+                  <th className="py-2 pr-4 text-right">Retirement/Death/Disability</th>
                   <th className="py-2 pr-4 text-right">Turnover</th>
-                  <th className="py-2 pr-4 text-right">In-Service</th>
-                  <th className="py-2 text-right">Total</th>
+                  <th className="py-2 text-right">Total Shares</th>
                 </tr>
               </thead>
               <tbody>
@@ -100,9 +104,9 @@ export default async function ShareTurnoverPage() {
                     <td className="py-2 pr-4 font-medium">{r.year}</td>
                     <td className="py-2 pr-4">{r.calendar_year_for_payout}</td>
                     <td className="py-2 pr-4 text-right">{fmtShares(r.diversification)}</td>
+                    <td className="py-2 pr-4 text-right">{fmtShares(r.in_service_distributions)}</td>
                     <td className="py-2 pr-4 text-right">{fmtShares(r.retirement_death_disability)}</td>
                     <td className="py-2 pr-4 text-right">{fmtShares(r.turnover)}</td>
-                    <td className="py-2 pr-4 text-right">{fmtShares(r.in_service_distributions)}</td>
                     <td className="py-2 text-right font-semibold">{fmtShares(r.total_shares)}</td>
                   </tr>
                 ))}

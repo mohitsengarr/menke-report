@@ -75,38 +75,45 @@ export default async function RepurchasePage() {
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm whitespace-nowrap">
+              {/*
+                SEN-226: match legacy `RepurchaseObligation/Index.cshtml` column
+                layout exactly — Shares Turned (F) and In-Service Distributions (J)
+                were missing, and the bespoke "ESOP Valuation" column was removed
+                because legacy rolls that value into "Total ESOP Assets".
+              */}
               <thead>
                 <tr className="border-b text-left text-gray-500">
-                  <th className="py-2 pr-4">Year</th>
-                  <th className="py-2 pr-4">Payout Year</th>
+                  <th className="py-2 pr-4">Plan Year</th>
+                  <th className="py-2 pr-4">Calendar Year for Payout</th>
                   <th className="py-2 pr-4 text-right">Share Price</th>
-                  <th className="py-2 pr-4 text-right">ESOP Shares</th>
-                  <th className="py-2 pr-4 text-right">ESOP Valuation</th>
+                  <th className="py-2 pr-4 text-right">ESOP Shares Allocated</th>
+                  <th className="py-2 pr-4 text-right">Shares Turned</th>
                   <th className="py-2 pr-4 text-right">OIA Balance</th>
                   <th className="py-2 pr-4 text-right">Total ESOP Assets</th>
-                  <th className="py-2 pr-4 text-right">Shares Redeemed</th>
+                  <th className="py-2 pr-4 text-right">ESOP Shares Redeemed</th>
                   <th className="py-2 pr-4 text-right">Diversification</th>
-                  <th className="py-2 pr-4 text-right">Retirement</th>
+                  <th className="py-2 pr-4 text-right">In-Service Distributions</th>
+                  <th className="py-2 pr-4 text-right">Retirement/Death/Disability</th>
                   <th className="py-2 pr-4 text-right">Turnover</th>
-                  <th className="py-2 pr-4 text-right">Total RO</th>
+                  <th className="py-2 pr-4 text-right">Total Repurchase Obligation</th>
                   <th className="py-2 text-right">NPV</th>
                 </tr>
               </thead>
               <tbody>
                 {roRows.map((r) => {
-                  const esopValuation = r.share_price * r.esop_shares_allocated
-                  const totalEsopAssets = esopValuation + r.oia_balance
+                  const totalEsopAssets = r.share_price * r.esop_shares_allocated + r.oia_balance
                   return (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-gray-50">
                       <td className="py-2 pr-4 font-medium">{r.year}</td>
                       <td className="py-2 pr-4">{r.calendar_year_for_payout}</td>
                       <td className="py-2 pr-4 text-right">{fmtPrice(r.share_price)}</td>
                       <td className="py-2 pr-4 text-right">{fmtInt(r.esop_shares_allocated)}</td>
-                      <td className="py-2 pr-4 text-right">{fmtDollarFull(esopValuation)}</td>
+                      <td className="py-2 pr-4 text-right">{fmtInt(r.shares_turned)}</td>
                       <td className="py-2 pr-4 text-right">{fmtDollarFull(r.oia_balance)}</td>
                       <td className="py-2 pr-4 text-right">{fmtDollarFull(totalEsopAssets)}</td>
                       <td className="py-2 pr-4 text-right">{fmtInt(r.esop_shares_redeemed)}</td>
                       <td className="py-2 pr-4 text-right">{fmtDollarFull(r.diversification)}</td>
+                      <td className="py-2 pr-4 text-right">{fmtDollarFull(r.in_service_distributions)}</td>
                       <td className="py-2 pr-4 text-right">{fmtDollarFull(r.retirement_death_disability)}</td>
                       <td className="py-2 pr-4 text-right">{fmtDollarFull(r.turnover)}</td>
                       <td className="py-2 pr-4 text-right">{fmtDollarFull(r.total_repurchase_obligation)}</td>
