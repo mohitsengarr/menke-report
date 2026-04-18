@@ -31,9 +31,21 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
+    // SEN-223: full legacy `ReportModel.cs` narrative set — 28 fields grouped
+    // into Plan Structure / Redemption / Funding / Life Cycle / Assumptions /
+    // Dividends / Plan Design / Disclaimer. All optional; the PDF renders a
+    // "Narrative" section only when at least one of these is provided.
     const {
       title, subtitle, reportDate, executiveSummary,
       planStage, fundingApproach, contributionSource,
+      leveraged, leveragedDiscussion, substantial, substantialDiscussion, annualContributions,
+      followedRedemption, stockRedemption, recycling, approach,
+      contributionFunding, cashComeFrom,
+      materialEvents, earlyStage, midStage, lateStages,
+      diversification, turnoverAssumption, death, disability, retirementAge, salaryIncrease,
+      dividendsContributions, repurchaseMethod,
+      participation, eligibility, allocations: planAllocations,
+      disclaimer,
     } = body as Record<string, string | undefined>
 
     const [
@@ -68,6 +80,35 @@ export async function POST(request: Request) {
       planStage: planStage || '',
       fundingApproach: fundingApproach || '',
       contributionSource: contributionSource || '',
+      narrative: {
+        leveraged: leveraged || '',
+        leveragedDiscussion: leveragedDiscussion || '',
+        substantial: substantial || '',
+        substantialDiscussion: substantialDiscussion || '',
+        annualContributions: annualContributions || '',
+        followedRedemption: followedRedemption || '',
+        stockRedemption: stockRedemption || '',
+        recycling: recycling || '',
+        approach: approach || '',
+        contributionFunding: contributionFunding || '',
+        cashComeFrom: cashComeFrom || '',
+        materialEvents: materialEvents || '',
+        earlyStage: earlyStage || '',
+        midStage: midStage || '',
+        lateStages: lateStages || '',
+        diversification: diversification || '',
+        turnoverAssumption: turnoverAssumption || '',
+        death: death || '',
+        disability: disability || '',
+        retirementAge: retirementAge || '',
+        salaryIncrease: salaryIncrease || '',
+        dividendsContributions: dividendsContributions || '',
+        repurchaseMethod: repurchaseMethod || '',
+        participation: participation || '',
+        eligibility: eligibility || '',
+        planAllocations: planAllocations || '',
+        disclaimer: disclaimer || '',
+      },
       valuations: valuations.data ?? [],
       repurchase: repurchase.data ?? [],
       turnover: turnover.data ?? [],
@@ -126,6 +167,42 @@ function yearFromRow(r: any, firstYear: number, index: number): number {
   return firstYear + index
 }
 
+/**
+ * SEN-223: `narrative` bundles all 28 legacy `ReportModel.cs` free-text
+ * fields. Each is optional; the PDF only renders sections for fields that
+ * contain text, so a minimal report with no narrative still produces a
+ * clean document.
+ */
+export interface ReportNarrative {
+  leveraged: string
+  leveragedDiscussion: string
+  substantial: string
+  substantialDiscussion: string
+  annualContributions: string
+  followedRedemption: string
+  stockRedemption: string
+  recycling: string
+  approach: string
+  contributionFunding: string
+  cashComeFrom: string
+  materialEvents: string
+  earlyStage: string
+  midStage: string
+  lateStages: string
+  diversification: string
+  turnoverAssumption: string
+  death: string
+  disability: string
+  retirementAge: string
+  salaryIncrease: string
+  dividendsContributions: string
+  repurchaseMethod: string
+  participation: string
+  eligibility: string
+  planAllocations: string
+  disclaimer: string
+}
+
 interface ReportData {
   title: string
   subtitle: string
@@ -134,6 +211,7 @@ interface ReportData {
   planStage: string
   fundingApproach: string
   contributionSource: string
+  narrative: ReportNarrative
   valuations: any[]
   repurchase: any[]
   turnover: any[]
@@ -148,6 +226,110 @@ interface ReportData {
   funding: any
   valuationInputs: any
   sharePrices: any
+}
+
+/**
+ * SEN-223: Render the user-supplied narrative bundle into a set of PDF
+ * pages. Each group (Plan Structure, Redemption, Funding, Life Cycle,
+ * Assumptions, Dividends, Plan Design, Disclaimer override) appears only
+ * when at least one of its fields is non-empty — the PDF stays clean
+ * when users skip sections.
+ */
+function renderNarrativeSections(n: ReportNarrative): string {
+  if (!n) return ''
+
+  const any = (...fields: string[]) => fields.some(v => v && v.trim().length > 0)
+  const para = (label: string, value: string) => {
+    if (!value || !value.trim()) return ''
+    return `<div style="margin-bottom: 16px;">
+      <h3 style="color: #1C3D80; font-size: 14px; margin-bottom: 4px;">${escape(label)}</h3>
+      <p style="white-space: pre-wrap;">${escape(value)}</p>
+    </div>`
+  }
+  const yesNo = (v: string) => v === 'yes' ? 'Yes' : v === 'no' ? 'No' : '—'
+
+  const sections: string[] = []
+
+  if (any(n.leveragedDiscussion, n.substantialDiscussion, n.annualContributions) ||
+      n.leveraged || n.substantial) {
+    sections.push(`<div class="page narrative">
+      <h1 class="section-head">Plan Structure</h1>
+      ${(n.leveraged || n.substantial) ? `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div><strong>Leveraged ESOP:</strong> ${yesNo(n.leveraged)}</div>
+          <div><strong>Substantial ESOP Ownership:</strong> ${yesNo(n.substantial)}</div>
+        </div>` : ''}
+      ${para('Leveraged Discussion', n.leveragedDiscussion)}
+      ${para('Substantial Discussion', n.substantialDiscussion)}
+      ${para('Annual Contributions', n.annualContributions)}
+    </div>`)
+  }
+
+  if (any(n.followedRedemption, n.stockRedemption, n.recycling, n.approach)) {
+    sections.push(`<div class="page narrative">
+      <h1 class="section-head">Redemption &amp; Recycling</h1>
+      ${para('Followed Redemption', n.followedRedemption)}
+      ${para('Stock Redemption', n.stockRedemption)}
+      ${para('Recycling', n.recycling)}
+      ${para('Approach', n.approach)}
+    </div>`)
+  }
+
+  if (any(n.contributionFunding, n.cashComeFrom)) {
+    sections.push(`<div class="page narrative">
+      <h1 class="section-head">Funding Approach</h1>
+      ${para('Contribution Funding', n.contributionFunding)}
+      ${para('Where the Cash Comes From', n.cashComeFrom)}
+    </div>`)
+  }
+
+  if (any(n.materialEvents, n.earlyStage, n.midStage, n.lateStages)) {
+    sections.push(`<div class="page narrative">
+      <h1 class="section-head">Plan Life Cycle</h1>
+      ${para('Material Events', n.materialEvents)}
+      ${para('Early Stage', n.earlyStage)}
+      ${para('Mid Stage', n.midStage)}
+      ${para('Late Stages', n.lateStages)}
+    </div>`)
+  }
+
+  if (any(n.diversification, n.turnoverAssumption, n.death, n.disability, n.retirementAge, n.salaryIncrease)) {
+    sections.push(`<div class="page narrative">
+      <h1 class="section-head">Assumptions &amp; Projections</h1>
+      ${para('Diversification', n.diversification)}
+      ${para('Turnover', n.turnoverAssumption)}
+      ${para('Death', n.death)}
+      ${para('Disability', n.disability)}
+      ${para('Retirement Age', n.retirementAge)}
+      ${para('Salary Increase', n.salaryIncrease)}
+    </div>`)
+  }
+
+  if (any(n.dividendsContributions, n.repurchaseMethod)) {
+    sections.push(`<div class="page narrative">
+      <h1 class="section-head">Dividends &amp; Repurchase</h1>
+      ${para('Dividends / Contributions', n.dividendsContributions)}
+      ${para('Repurchase Method', n.repurchaseMethod)}
+    </div>`)
+  }
+
+  if (any(n.participation, n.eligibility, n.planAllocations)) {
+    sections.push(`<div class="page narrative">
+      <h1 class="section-head">Plan Design</h1>
+      ${para('Participation', n.participation)}
+      ${para('Eligibility', n.eligibility)}
+      ${para('Allocations', n.planAllocations)}
+    </div>`)
+  }
+
+  if (n.disclaimer && n.disclaimer.trim()) {
+    sections.push(`<div class="page narrative">
+      <h1 class="section-head">Disclaimer</h1>
+      <p style="white-space: pre-wrap;">${escape(n.disclaimer)}</p>
+    </div>`)
+  }
+
+  return sections.join('\n')
 }
 
 function buildReportHTML(data: ReportData): string {
@@ -1141,6 +1323,8 @@ function buildReportHTML(data: ReportData): string {
     <div class="kv"><span class="k">Years 6-10 Share Price Growth Rate:</span><span class="v">${pctVal(data.sharePrices?.share_price_ten)}</span></div>
     <div class="page-num">-37-</div>
   </div>
+
+  ${renderNarrativeSections(data.narrative)}
 
   <!-- ═══════ CONCLUSION ═══════ -->
   <div class="page narrative">
