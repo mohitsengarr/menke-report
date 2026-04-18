@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { fmtDollar } from '@/lib/utils'
@@ -9,7 +10,7 @@ const fmtYears = (v: number) => v.toLocaleString(undefined, { minimumFractionDig
 export default async function AverageAgeTenureTerminatedPage() {
   const supabase = await createClient()
   const { data: user } = await supabase.auth.getUser()
-  if (!user.user) return null
+  if (!user.user) redirect('/login')
 
   const { data } = await supabase
     .from('average_age_tenure_terminated')

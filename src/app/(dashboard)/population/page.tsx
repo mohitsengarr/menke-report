@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppBarChart } from '@/components/charts/bar-chart'
@@ -11,7 +12,7 @@ export const metadata = { title: 'Population Analysis' }
 export default async function PopulationPage() {
   const supabase = await createClient()
   const { data: user } = await supabase.auth.getUser()
-  if (!user.user) return null
+  if (!user.user) redirect('/login')
 
   const { data: analyses } = await supabase
     .from('population_analyses')

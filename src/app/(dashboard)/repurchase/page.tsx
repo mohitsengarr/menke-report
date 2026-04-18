@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppLineChart } from '@/components/charts/line-chart'
@@ -16,7 +17,7 @@ export const metadata = { title: 'Repurchase Obligation' }
 export default async function RepurchasePage() {
   const supabase = await createClient()
   const { data: user } = await supabase.auth.getUser()
-  if (!user.user) return null
+  if (!user.user) redirect('/login')
 
   const [{ data: obligations }, { data: turnover }] = await Promise.all([
     supabase.from('repurchase_obligations').select('*').eq('user_id', user.user.id).order('year'),

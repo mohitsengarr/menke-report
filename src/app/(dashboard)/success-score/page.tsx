@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppLineChart } from '@/components/charts/line-chart'
@@ -25,7 +26,7 @@ export const metadata = { title: 'ESOP Success Score' }
 export default async function SuccessScorePage() {
   const supabase = await createClient()
   const { data: user } = await supabase.auth.getUser()
-  if (!user.user) return null
+  if (!user.user) redirect('/login')
 
   const { data: scores } = await supabase
     .from('success_scores')

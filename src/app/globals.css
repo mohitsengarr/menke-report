@@ -160,3 +160,23 @@
     @apply font-sans;
   }
 }
+
+/*
+ * SEN-228: Pure-CSS page fade-in. Starts at opacity:1 (content visible
+ * even if animation never plays) and runs a one-off enter animation for
+ * a subtle touch. No JS dependency, no risk of stuck-invisible state.
+ */
+@keyframes pageFadeIn {
+  0%   { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.page-fade-in {
+  animation: pageFadeIn 240ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-fade-in {
+    animation: none;
+  }
+}

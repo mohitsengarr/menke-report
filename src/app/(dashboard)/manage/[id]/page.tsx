@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { InputData } from '@/lib/types/database'
@@ -61,7 +61,7 @@ export default async function ParticipantDetailPage({ params }: { params: Promis
 
   const supabase = await createClient()
   const { data: user } = await supabase.auth.getUser()
-  if (!user.user) return null
+  if (!user.user) redirect('/login')
 
   const { data: rows } = await supabase
     .from('input_data')

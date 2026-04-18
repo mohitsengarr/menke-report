@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { InputData } from '@/lib/types/database'
@@ -10,7 +11,7 @@ export const metadata = { title: 'Data Management' }
 export default async function ManagePage() {
   const supabase = await createClient()
   const { data: user } = await supabase.auth.getUser()
-  if (!user.user) return null
+  if (!user.user) redirect('/login')
 
   const { data: participants } = await supabase
     .from('input_data')

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppBarChart } from '@/components/charts/bar-chart'
@@ -9,7 +10,7 @@ const fmtShares = (v: number) => v.toLocaleString()
 export default async function ShareTurnoverPage() {
   const supabase = await createClient()
   const { data: user } = await supabase.auth.getUser()
-  if (!user.user) return null
+  if (!user.user) redirect('/login')
 
   const { data } = await supabase
     .from('share_turnover_schedules')

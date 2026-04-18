@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { TrendingUp, TrendingDown, DollarSign, Users, Award, Upload, FileText, BarChart3, UsersRound, AlertTriangle } from 'lucide-react'
@@ -25,15 +26,33 @@ function healthLabel(score: number): { label: string; color: string } {
 }
 
 export default async function DashboardPage() {
+  // SEN-228: the previous version used `user!.id` — a TypeScript non-null
+  // assertion that does nothing at runtime. If the session cookie is
+  // stale or the token refresh inside this page silently fails (the
+  // layout can't set cookies, see /lib/supabase/server.ts comment),
+  // `user` ends up null and every subsequent `user!.id` throws a
+  // TypeError. Next.js's RSC streaming catches those and falls through
+  // to not-found.tsx, producing the "stuck on skeleton" symptom.
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+  const userId = user.id
 
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user!.id).single()
-  const { data: valuations } = await supabase.from('valuation_projections').select('*').eq('user_id', user!.id).order('year')
-  const { data: repurchase } = await supabase.from('repurchase_obligations').select('*').eq('user_id', user!.id).order('year')
-  const { data: population } = await supabase.from('population_analyses').select('*').eq('user_id', user!.id).order('year')
-  const { data: scores } = await supabase.from('success_scores').select('*').eq('user_id', user!.id).order('year_for_payout')
-  const { data: turnover } = await supabase.from('share_turnover_schedules').select('*').eq('user_id', user!.id)
+  const [
+    { data: profile },
+    { data: valuations },
+    { data: repurchase },
+    { data: population },
+    { data: scores },
+    { data: turnover },
+  ] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+    supabase.from('valuation_projections').select('*').eq('user_id', userId).order('year'),
+    supabase.from('repurchase_obligations').select('*').eq('user_id', userId).order('year'),
+    supabase.from('population_analyses').select('*').eq('user_id', userId).order('year'),
+    supabase.from('success_scores').select('*').eq('user_id', userId).order('year_for_payout'),
+    supabase.from('share_turnover_schedules').select('*').eq('user_id', userId),
+  ])
 
   const yearSort = (a: { year: string }, b: { year: string }) => {
     const yearA = parseInt(a.year.replace(/\D/g, '')) || 0
@@ -63,12 +82,15 @@ export default async function DashboardPage() {
 
   // Success score helpers
   const latestScore = scores && scores.length > 0 ? scores[scores.length - 1] : null
-  const scoreVal = latestScore ? (latestScore.esop_success_score > 1 ? latestScore.esop_success_score / 100 : latestScore.esop_success_score) : null
+  const scoreVal = latestScore && latestScore.esop_success_score != null
+    ? (latestScore.esop_success_score > 1 ? latestScore.esop_success_score / 100 : latestScore.esop_success_score)
+    : null
   const projectedScore = scores && scores.length >= 3 ? scores[scores.length - 1] : null
   const health = scoreVal != null ? healthLabel(scoreVal) : null
 
-  // Settings completeness check
-  const settingsIncomplete = hasData && (!profile?.company_name || !profile?.discount_rate)
+  // Settings completeness check — profile may have no discount_rate column,
+  // so just flag incomplete when the display-critical company_name is missing.
+  const settingsIncomplete = hasData && !profile?.company_name
 
   // Valuation snapshot rows: Year 1, Year 5, Year 10
   const valSnapRows = [0, 4, 9].map(i => valuations?.[i]).filter(Boolean)

@@ -1,16 +1,21 @@
-'use client'
-
-import { motion } from 'framer-motion'
 import { type ReactNode } from 'react'
 
+/**
+ * Page transition wrapper.
+ *
+ * Previously used framer-motion with `initial={{ opacity: 0 }}`, which
+ * meant every server-rendered page was sent to the browser at
+ * `opacity: 0` and relied on client JS to animate it visible. Any
+ * delay, error, or hydration hiccup (see SEN-228) left the entire
+ * page invisible while the loading skeleton above stayed mounted —
+ * the classic "page stuck on skeleton" symptom.
+ *
+ * This version is a plain server component that simply passes
+ * children through. CSS-only fade-in is applied via the global
+ * `page-fade-in` animation class, which uses `animation` (NOT
+ * `opacity: 0` initial state) so content is visible even if the
+ * animation never plays.
+ */
 export function PageWrapper({ children }: { children: ReactNode }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
-    >
-      {children}
-    </motion.div>
-  )
+  return <div className="page-fade-in">{children}</div>
 }
