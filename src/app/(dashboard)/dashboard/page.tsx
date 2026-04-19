@@ -165,6 +165,8 @@ export default async function DashboardPage() {
       })()
     : 'N/A'
 
+  await trace('pre_return', `hasData=${hasData} scoreVal=${scoreVal} activeParticipants=${activeParticipants}`)
+
   return (
     <div className="space-y-6">
       {/* Header */}
