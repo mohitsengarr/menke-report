@@ -35,42 +35,49 @@ export default async function DashboardPage() {
   // `user` ends up null and every subsequent `user!.id` throws a
   // TypeError. Next.js's RSC streaming catches those and falls through
   // to not-found.tsx, producing the "stuck on skeleton" symptom.
+  // SEN-228 diagnostic: write every step to a DB table so we get the full trace
+  // (Vercel was only capturing the first console.log per request).
+  const reqId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const t0 = Date.now()
-  const log = (msg: string) => console.log(`[SEN-228 dashboard t+${Date.now() - t0}ms] ${msg}`)
-  log('start')
   const supabase = await createClient()
-  log('createClient ok')
+  // Use a separate service-role or anon client bypass via our disabled-RLS diag table
+  const trace = async (step: string, info = '') => {
+    try {
+      await supabase.from('sen228_diag').insert({ req_id: reqId, t_ms: Date.now() - t0, step, info })
+    } catch {}
+    console.log(`[SEN-228 ${reqId}] t+${Date.now() - t0}ms ${step} ${info}`)
+  }
+  await trace('start')
   const { data: { user }, error: authErr } = await supabase.auth.getUser()
-  log(`getUser done — user=${user?.id ?? 'null'} err=${authErr?.message ?? 'none'}`)
+  await trace('getUser_done', `user=${user?.id ?? 'null'} err=${authErr?.message ?? 'none'}`)
   if (!user) redirect('/login')
   const userId = user.id
 
-  // Fetch each table sequentially (not Promise.all) so we can identify which one hangs.
-  log('q1 profiles start')
+  await trace('q1_profiles_start')
   const { data: profile, error: profErr } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
-  log(`q1 profiles done err=${profErr?.message ?? 'none'} rows=${profile ? 1 : 0}`)
+  await trace('q1_profiles_done', `err=${profErr?.message ?? 'none'} hasRow=${!!profile}`)
 
-  log('q2 valuations start')
+  await trace('q2_valuations_start')
   const { data: valuations, error: valErr } = await supabase.from('valuation_projections').select('*').eq('user_id', userId).order('year')
-  log(`q2 valuations done err=${valErr?.message ?? 'none'} rows=${valuations?.length ?? 'null'}`)
+  await trace('q2_valuations_done', `err=${valErr?.message ?? 'none'} rows=${valuations?.length ?? 'null'}`)
 
-  log('q3 repurchase start')
+  await trace('q3_repurchase_start')
   const { data: repurchase, error: repErr } = await supabase.from('repurchase_obligations').select('*').eq('user_id', userId).order('year')
-  log(`q3 repurchase done err=${repErr?.message ?? 'none'} rows=${repurchase?.length ?? 'null'}`)
+  await trace('q3_repurchase_done', `err=${repErr?.message ?? 'none'} rows=${repurchase?.length ?? 'null'}`)
 
-  log('q4 population start')
+  await trace('q4_population_start')
   const { data: population, error: popErr } = await supabase.from('population_analyses').select('*').eq('user_id', userId).order('year')
-  log(`q4 population done err=${popErr?.message ?? 'none'} rows=${population?.length ?? 'null'}`)
+  await trace('q4_population_done', `err=${popErr?.message ?? 'none'} rows=${population?.length ?? 'null'}`)
 
-  log('q5 scores start')
+  await trace('q5_scores_start')
   const { data: scores, error: scoreErr } = await supabase.from('success_scores').select('*').eq('user_id', userId).order('year_for_payout')
-  log(`q5 scores done err=${scoreErr?.message ?? 'none'} rows=${scores?.length ?? 'null'}`)
+  await trace('q5_scores_done', `err=${scoreErr?.message ?? 'none'} rows=${scores?.length ?? 'null'}`)
 
-  log('q6 turnover start')
+  await trace('q6_turnover_start')
   const { data: turnover, error: turnErr } = await supabase.from('share_turnover_schedules').select('*').eq('user_id', userId)
-  log(`q6 turnover done err=${turnErr?.message ?? 'none'} rows=${turnover?.length ?? 'null'}`)
+  await trace('q6_turnover_done', `err=${turnErr?.message ?? 'none'} rows=${turnover?.length ?? 'null'}`)
 
-  log('all queries complete')
+  await trace('all_queries_complete')
 
   const yearSort = (a: { year: string }, b: { year: string }) => {
     const yearA = parseInt(a.year.replace(/\D/g, '')) || 0
